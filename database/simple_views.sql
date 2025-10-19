@@ -13,6 +13,7 @@ DROP VIEW IF EXISTS task_statistics;
 CREATE VIEW task_dashboard AS
 SELECT 
     t.id,
+    t.title,
     t.description,
     t.estimated_duration,
     t.priority,
@@ -64,6 +65,7 @@ WHERE t.status IN ('pending', 'in_progress');
 CREATE VIEW todays_tasks AS
 SELECT 
     t.id,
+    t.title,
     t.description,
     t.priority,
     CASE 
@@ -107,6 +109,7 @@ ORDER BY urgency_score DESC, t.priority ASC;
 CREATE VIEW upcoming_tasks AS
 SELECT 
     t.id,
+    t.title,
     t.description,
     t.priority,
     t.planned_date,
@@ -129,6 +132,7 @@ ORDER BY
 CREATE VIEW overdue_tasks AS
 SELECT 
     t.id,
+    t.title,
     t.description,
     t.priority,
     t.deadline,

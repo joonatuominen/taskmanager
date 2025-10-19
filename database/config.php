@@ -175,12 +175,12 @@ class TaskDatabase {
         }
         
         if (!empty($filters['search'])) {
-            $sql .= " AND description LIKE :search";
+            $sql .= " AND (title LIKE :search OR description LIKE :search)";
             $params['search'] = '%' . $filters['search'] . '%';
         }
         
         // Apply ordering
-        $allowedOrderBy = ['urgency_score', 'priority', 'deadline', 'planned_date', 'created_at', 'description'];
+        $allowedOrderBy = ['urgency_score', 'priority', 'deadline', 'planned_date', 'created_at', 'title', 'description'];
         if (in_array($orderBy, $allowedOrderBy)) {
             $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
             $sql .= " ORDER BY {$orderBy} {$orderDir}";
@@ -224,12 +224,13 @@ class TaskDatabase {
      * Create a new task
      */
     public function createTask($data) {
-        $sql = "INSERT INTO tasks (description, estimated_duration, priority, deadline, planned_date, recurrency_type_id) 
-                VALUES (:description, :estimated_duration, :priority, :deadline, :planned_date, :recurrency_type_id)";
+        $sql = "INSERT INTO tasks (title, description, estimated_duration, priority, deadline, planned_date, recurrency_type_id) 
+                VALUES (:title, :description, :estimated_duration, :priority, :deadline, :planned_date, :recurrency_type_id)";
         
         $stmt = $this->connection->prepare($sql);
         return $stmt->execute([
-            'description' => $data['description'],
+            'title' => $data['title'],
+            'description' => $data['description'] ?? '',
             'estimated_duration' => $data['estimated_duration'] ?? null,
             'priority' => $data['priority'] ?? 50,
             'deadline' => $data['deadline'] ?? null,
@@ -245,7 +246,7 @@ class TaskDatabase {
         $fields = [];
         $params = ['id' => $id];
         
-        $allowedFields = ['description', 'estimated_duration', 'priority', 'deadline', 'planned_date', 'status', 'recurrency_type_id'];
+        $allowedFields = ['title', 'description', 'estimated_duration', 'priority', 'deadline', 'planned_date', 'status', 'recurrency_type_id'];
         
         foreach ($allowedFields as $field) {
             if (array_key_exists($field, $data)) {

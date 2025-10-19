@@ -210,11 +210,55 @@ try {
             flex: 1;
         }
         
-        .task-description {
+        .task-title {
             font-size: 1.1rem;
             font-weight: 600;
             margin-bottom: 8px;
             color: #333;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        
+        .task-title:hover {
+            color: #667eea;
+        }
+        
+        .task-description {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.4;
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease, margin-bottom 0.3s ease, padding 0.3s ease;
+            margin-bottom: 0;
+            padding: 0;
+        }
+        
+        .task-description.expanded {
+            max-height: 200px;
+            margin-bottom: 12px;
+        }
+        
+        .task-description.has-content.expanded {
+            border-left: 3px solid #e9ecef;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            padding: 8px 12px;
+        }
+        
+        .task-expand-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 0.8rem;
+            cursor: pointer;
+            padding: 2px 0;
+            margin-left: 8px;
+            transition: color 0.2s ease;
+        }
+        
+        .task-expand-btn:hover {
+            color: #5a6fd8;
         }
         
         .task-meta {
@@ -699,6 +743,8 @@ try {
 
         // Task Item Component
         function TaskItem({ task, onComplete }) {
+            const [isExpanded, setIsExpanded] = useState(false);
+            
             const getPriorityClass = (label) => {
                 return `priority-${label.toLowerCase().replace(' ', '-')}`;
             };
@@ -711,13 +757,31 @@ try {
                 return `urgency-${status.replace('_', '-')}`;
             };
 
+            const toggleDescription = () => {
+                setIsExpanded(!isExpanded);
+            };
+
+            const hasDescription = task.description && task.description.trim() !== '';
+
             return (
                 <div className="task-item">
                     <div className="task-content">
                         <div className="task-main">
-                            <div className="task-description">
-                                {task.description}
+                            <div className="task-title" onClick={hasDescription ? toggleDescription : undefined}>
+                                {task.title}
+                                {hasDescription && (
+                                    <button className="task-expand-btn" onClick={toggleDescription}>
+                                        <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
+                                        {isExpanded ? 'Hide Details' : 'Show Details'}
+                                    </button>
+                                )}
                             </div>
+                            
+                            {hasDescription && (
+                                <div className={`task-description has-content ${isExpanded ? 'expanded' : ''}`}>
+                                    {task.description}
+                                </div>
+                            )}
                             
                             <div className="task-meta">
                                 {task.estimated_duration && (

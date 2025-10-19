@@ -209,14 +209,15 @@ function getTask($taskDb, $id) {
 function createTask($taskDb) {
     $input = json_decode(file_get_contents('php://input'), true);
     
-    if (!$input || empty($input['description'])) {
+    if (!$input || empty($input['title'])) {
         http_response_code(400);
-        echo json_encode(['error' => 'Description is required']);
+        echo json_encode(['error' => 'Title is required']);
         return;
     }
     
     $data = [
-        'description' => $input['description'],
+        'title' => $input['title'],
+        'description' => $input['description'] ?? '',
         'estimated_duration' => $input['estimated_duration'] ?? null,
         'priority' => $input['priority'] ?? 50,
         'deadline' => $input['deadline'] ?? null,

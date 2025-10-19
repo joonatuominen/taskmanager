@@ -157,7 +157,7 @@ require_once __DIR__ . '/database/config.php';
                     if (!empty($tasks)) {
                         echo '<h3>📋 Sample Tasks (Top 10 by Urgency)</h3>';
                         echo '<table>';
-                        echo '<tr><th>ID</th><th>Description</th><th>Priority</th><th>Status</th><th>Deadline</th><th>Urgency Score</th></tr>';
+                        echo '<tr><th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>Deadline</th><th>Urgency Score</th></tr>';
                         
                         foreach ($tasks as $task) {
                             $priorityClass = '';
@@ -171,7 +171,7 @@ require_once __DIR__ . '/database/config.php';
                             
                             echo '<tr>';
                             echo '<td>' . $task['id'] . '</td>';
-                            echo '<td>' . htmlspecialchars($task['description']) . '</td>';
+                            echo '<td>' . htmlspecialchars($task['title']) . '</td>';
                             echo '<td class="' . $priorityClass . '">' . $task['priority'] . ' (' . $task['priority_label'] . ')</td>';
                             echo '<td>' . ucwords(str_replace('_', ' ', $task['status'])) . '</td>';
                             echo '<td>' . ($task['deadline'] ? date('M j, Y H:i', strtotime($task['deadline'])) : '-') . '</td>';
@@ -190,7 +190,7 @@ require_once __DIR__ . '/database/config.php';
                         
                         foreach ($todayTasks as $task) {
                             echo '<tr>';
-                            echo '<td>' . htmlspecialchars($task['description']) . '</td>';
+                            echo '<td>' . htmlspecialchars($task['title']) . '</td>';
                             echo '<td>' . $task['priority'] . ' (' . $task['priority_label'] . ')</td>';
                             echo '<td>' . ucwords(str_replace('_', ' ', $task['day_status'])) . '</td>';
                             echo '<td>' . round($task['urgency_score'], 1) . '</td>';

@@ -168,11 +168,20 @@
         <div class="form-container">
             <form id="taskForm">
                 <div class="form-group">
-                    <label for="description">
-                        <i class="fas fa-tasks"></i> Task Description *
+                    <label for="title">
+                        <i class="fas fa-heading"></i> Task Title *
                     </label>
-                    <textarea id="description" name="description" required 
-                              placeholder="Describe what needs to be done..."></textarea>
+                    <input type="text" id="title" name="title" required 
+                           placeholder="Enter a short, descriptive title for your task..."
+                           maxlength="255">
+                </div>
+
+                <div class="form-group">
+                    <label for="description">
+                        <i class="fas fa-sticky-note"></i> Detailed Notes & Description
+                    </label>
+                    <textarea id="description" name="description" 
+                              placeholder="Add detailed notes, steps, links, or any additional information about this task..."></textarea>
                 </div>
 
                 <div class="form-row">
@@ -273,7 +282,7 @@
             
             // Convert form data to object
             for (let [key, value] of formData.entries()) {
-                if (value.trim() !== '') {
+                if (value.trim() !== '' || key === 'description') {
                     data[key] = value;
                 }
             }
