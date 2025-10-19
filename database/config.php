@@ -266,6 +266,19 @@ class TaskDatabase {
      * Update a task
      */
     public function updateTask($id, $data) {
+        // First, get the current task data to check if it's being completed and is recurring
+        $stmt = $this->connection->prepare("SELECT * FROM tasks WHERE id = ?");
+        $stmt->execute([$id]);
+        $currentTask = $stmt->fetch();
+        
+        if (!$currentTask) {
+            return false;
+        }
+        
+        // Check if task is being completed and is recurring
+        $isBeingCompleted = isset($data['status']) && $data['status'] === 'completed' && $currentTask['status'] !== 'completed';
+        $isRecurring = $currentTask['recurrency_type_id'] && $currentTask['recurrency_type_id'] != 1; // 1 is 'none'
+        
         $fields = [];
         $params = ['id' => $id];
         
@@ -275,6 +288,11 @@ class TaskDatabase {
             if (array_key_exists($field, $data)) {
                 $fields[] = "{$field} = :{$field}";
                 $params[$field] = $data[$field];
+                
+                // Set completed_at timestamp when marking as completed
+                if ($field === 'status' && $data[$field] === 'completed') {
+                    $fields[] = "completed_at = NOW()";
+                }
             }
         }
         
@@ -284,7 +302,88 @@ class TaskDatabase {
         
         $sql = "UPDATE tasks SET " . implode(', ', $fields) . " WHERE id = :id";
         $stmt = $this->connection->prepare($sql);
-        return $stmt->execute($params);
+        $result = $stmt->execute($params);
+        
+        // If task was completed and is recurring, create the next instance
+        if ($result && $isBeingCompleted && $isRecurring) {
+            $this->createNextRecurringTask($currentTask);
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Create the next instance of a recurring task
+     */
+    private function createNextRecurringTask($task) {
+        // Calculate next dates based on recurrency type
+        $nextDeadline = null;
+        $nextPlannedDate = null;
+        
+        // Get recurrency type name
+        $stmt = $this->connection->prepare("SELECT name FROM recurrency_types WHERE id = ?");
+        $stmt->execute([$task['recurrency_type_id']]);
+        $recurrencyType = $stmt->fetchColumn();
+        
+        if (!$recurrencyType || $recurrencyType === 'none') {
+            return false;
+        }
+        
+        // Calculate next deadline if original task had one
+        if ($task['deadline']) {
+            $nextDeadline = $this->calculateNextDate($task['deadline'], $recurrencyType, $task['recurrency_interval'] ?? 1);
+        }
+        
+        // Calculate next planned date if original task had one
+        if ($task['planned_date']) {
+            $nextPlannedDate = $this->calculateNextDate($task['planned_date'], $recurrencyType, $task['recurrency_interval'] ?? 1);
+        }
+        
+        // Check if recurrency should end
+        if ($task['recurrency_end_date'] && 
+            (($nextDeadline && $nextDeadline > $task['recurrency_end_date']) || 
+             ($nextPlannedDate && $nextPlannedDate > $task['recurrency_end_date']))) {
+            return false; // Don't create next task if past end date
+        }
+        
+        // Create new task data
+        $newTaskData = [
+            'title' => $task['title'],
+            'description' => $task['description'],
+            'estimated_duration' => $task['estimated_duration'],
+            'priority' => $task['priority'],
+            'deadline' => $nextDeadline,
+            'planned_date' => $nextPlannedDate,
+            'recurrency_type_id' => $task['recurrency_type_id']
+        ];
+        
+        return $this->createTask($newTaskData);
+    }
+    
+    /**
+     * Calculate next date based on recurrency type
+     */
+    private function calculateNextDate($dateString, $recurrencyType, $interval = 1) {
+        $date = new DateTime($dateString);
+        
+        switch ($recurrencyType) {
+            case 'daily':
+                $date->modify("+{$interval} day");
+                break;
+            case 'weekly':
+                $date->modify("+{$interval} week");
+                break;
+            case 'monthly':
+                $date->modify("+{$interval} month");
+                break;
+            case 'yearly':
+                $date->modify("+{$interval} year");
+                break;
+            default:
+                return null;
+        }
+        
+        return $date->format('Y-m-d H:i:s');
     }
     
     /**
