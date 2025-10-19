@@ -47,42 +47,22 @@ try {
         }
         
         .app-container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 30px;
-            border-radius: 12px;
-            margin-bottom: 30px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 10px;
-        }
-        
-        .header p {
-            font-size: 1.1rem;
-            opacity: 0.9;
+            max-width: 100%;
+            margin: 0;
+            padding: 15px;
         }
         
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            gap: 15px;
+            margin-bottom: 20px;
         }
         
         .stat-card {
             background: white;
-            padding: 25px;
-            border-radius: 10px;
+            padding: 20px;
+            border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             text-align: center;
             transition: transform 0.2s ease;
@@ -106,34 +86,26 @@ try {
         }
         
         .main-content {
-            display: grid;
-            gap: 30px;
+            display: block;
         }
         
-        .main-content.with-sidebar {
-            grid-template-columns: 250px 1fr;
-        }
-        
-        .main-content.without-sidebar {
-            grid-template-columns: 1fr;
-        }
-        
-        .sidebar {
+        .filters-bar {
             background: white;
-            border-radius: 10px;
-            padding: 25px;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            height: fit-content;
         }
         
-        .sidebar h3 {
-            margin-bottom: 20px;
-            color: #333;
-            font-size: 1.2rem;
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            align-items: end;
         }
         
         .filter-group {
-            margin-bottom: 25px;
+            margin-bottom: 0;
         }
         
         .filter-group label {
@@ -141,6 +113,7 @@ try {
             margin-bottom: 8px;
             font-weight: 600;
             color: #555;
+            font-size: 0.9rem;
         }
         
         .filter-group select,
@@ -159,15 +132,21 @@ try {
             border-color: #667eea;
         }
         
+        .priority-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+        
         .tasks-container {
             background: white;
-            border-radius: 10px;
+            border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             overflow: hidden;
         }
         
         .tasks-header {
-            padding: 25px;
+            padding: 20px;
             border-bottom: 1px solid #e9ecef;
             display: flex;
             justify-content: space-between;
@@ -189,12 +168,12 @@ try {
         }
         
         .task-list {
-            max-height: 600px;
+            max-height: 70vh;
             overflow-y: auto;
         }
         
         .task-item {
-            padding: 20px 25px;
+            padding: 18px 20px;
             border-bottom: 1px solid #f1f3f4;
             transition: background-color 0.2s ease;
         }
@@ -396,22 +375,43 @@ try {
         }
         
         @media (max-width: 768px) {
-            .main-content.with-sidebar,
-            .main-content.without-sidebar {
-                grid-template-columns: 1fr;
-            }
-            
             .stats-grid {
                 grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .header h1 {
-                font-size: 2rem;
             }
             
             .task-content {
                 flex-direction: column;
                 gap: 15px;
+            }
+            
+            .app-container {
+                padding: 10px;
+            }
+            
+            .main-content {
+                gap: 15px;
+            }
+        }
+        
+        @media (max-width: 480px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .tasks-header {
+                flex-direction: column;
+                gap: 15px;
+                align-items: stretch;
+            }
+            
+            .tab-buttons {
+                flex-wrap: wrap;
+                gap: 5px;
+            }
+            
+            .tab-button {
+                padding: 8px 12px;
+                font-size: 0.85rem;
             }
         }
         
@@ -569,19 +569,15 @@ try {
 
             return (
                 <div className="app-container">
-                    <header className="header">
-                        <h1><i className="fas fa-tasks"></i> Task Manager</h1>
-                        <p>Organize your tasks efficiently with smart prioritization</p>
-                    </header>
-
                     {stats && <StatsGrid stats={stats} />}
 
-                    <div className={`main-content ${activeTab === 'all' ? 'with-sidebar' : 'without-sidebar'}`}>
-                        <Sidebar 
-                            filters={filters}
-                            onFilterChange={handleFilterChange}
-                            activeTab={activeTab}
-                        />
+                    <div className="main-content">
+                        {activeTab === 'all' && (
+                            <FiltersBar 
+                                filters={filters}
+                                onFilterChange={handleFilterChange}
+                            />
+                        )}
                         
                         <TasksContainer
                             tasks={tasks}
@@ -628,70 +624,71 @@ try {
             );
         }
 
-        // Sidebar Component
-        function Sidebar({ filters, onFilterChange, activeTab }) {
-            if (activeTab !== 'all') return null;
-
+        // Filters Bar Component
+        function FiltersBar({ filters, onFilterChange }) {
             return (
-                <div className="sidebar">
-                    <h3><i className="fas fa-filter"></i> Filters</h3>
-                    
-                    <div className="filter-group">
-                        <label>Status</label>
-                        <select 
-                            value={filters.status}
-                            onChange={(e) => onFilterChange('status', e.target.value)}
-                        >
-                            <option value="">All Statuses</option>
-                            <option value="pending">Pending</option>
-                            <option value="in_progress">In Progress</option>
-                            <option value="completed">Completed</option>
-                        </select>
-                    </div>
+                <div className="filters-bar">
+                    <div className="filters-grid">
+                        <div className="filter-group">
+                            <label><i className="fas fa-flag"></i> Status</label>
+                            <select 
+                                value={filters.status}
+                                onChange={(e) => onFilterChange('status', e.target.value)}
+                            >
+                                <option value="">All Statuses</option>
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="completed">Completed</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="on_hold">On Hold</option>
+                            </select>
+                        </div>
 
-                    <div className="filter-group">
-                        <label>Urgency</label>
-                        <select 
-                            value={filters.urgency_status}
-                            onChange={(e) => onFilterChange('urgency_status', e.target.value)}
-                        >
-                            <option value="">All Urgencies</option>
-                            <option value="overdue">Overdue</option>
-                            <option value="due_today">Due Today</option>
-                            <option value="due_soon">Due Soon</option>
-                            <option value="normal">Normal</option>
-                        </select>
-                    </div>
+                        <div className="filter-group">
+                            <label><i className="fas fa-exclamation-triangle"></i> Urgency</label>
+                            <select 
+                                value={filters.urgency_status}
+                                onChange={(e) => onFilterChange('urgency_status', e.target.value)}
+                            >
+                                <option value="">All Urgencies</option>
+                                <option value="overdue">Overdue</option>
+                                <option value="due_today">Due Today</option>
+                                <option value="due_soon">Due Soon</option>
+                                <option value="normal">Normal</option>
+                            </select>
+                        </div>
 
-                    <div className="filter-group">
-                        <label>Priority Range</label>
-                        <input 
-                            type="number" 
-                            placeholder="Min priority (1-100)"
-                            min="1" 
-                            max="100"
-                            value={filters.priority_min}
-                            onChange={(e) => onFilterChange('priority_min', e.target.value)}
-                        />
-                        <input 
-                            type="number" 
-                            placeholder="Max priority (1-100)"
-                            min="1" 
-                            max="100"
-                            value={filters.priority_max}
-                            onChange={(e) => onFilterChange('priority_max', e.target.value)}
-                            style={{marginTop: '8px'}}
-                        />
-                    </div>
+                        <div className="filter-group">
+                            <label><i className="fas fa-sort-numeric-down"></i> Priority Range</label>
+                            <div className="priority-inputs">
+                                <input 
+                                    type="number" 
+                                    placeholder="Min (1-100)"
+                                    min="1" 
+                                    max="100"
+                                    value={filters.priority_min}
+                                    onChange={(e) => onFilterChange('priority_min', e.target.value)}
+                                />
+                                <input 
+                                    type="number" 
+                                    placeholder="Max (1-100)"
+                                    min="1" 
+                                    max="100"
+                                    value={filters.priority_max}
+                                    onChange={(e) => onFilterChange('priority_max', e.target.value)}
+                                />
+                            </div>
+                        </div>
 
-                    <div className="filter-group">
-                        <label>Search</label>
-                        <input 
-                            type="text" 
-                            placeholder="Search tasks..."
-                            value={filters.search}
-                            onChange={(e) => onFilterChange('search', e.target.value)}
-                        />
+                        <div className="filter-group">
+                            <label><i className="fas fa-search"></i> Search Tasks</label>
+                            <input 
+                                type="text" 
+                                placeholder="Search in title and description..."
+                                value={filters.search}
+                                onChange={(e) => onFilterChange('search', e.target.value)}
+                            />
+                        </div>
                     </div>
                 </div>
             );
