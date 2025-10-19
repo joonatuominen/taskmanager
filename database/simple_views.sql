@@ -116,9 +116,25 @@ SELECT
     t.title,
     t.description,
     t.priority,
+    CASE 
+        WHEN t.priority <= 10 THEN 'Critical'
+        WHEN t.priority <= 25 THEN 'High'
+        WHEN t.priority <= 50 THEN 'Medium'
+        WHEN t.priority <= 75 THEN 'Low'
+        ELSE 'Very Low'
+    END as priority_label,
     t.planned_date,
     t.deadline,
     t.estimated_duration,
+    t.status,
+    CASE 
+        WHEN t.deadline IS NOT NULL AND t.deadline < NOW() THEN 'overdue'
+        WHEN t.deadline IS NOT NULL AND DATE(t.deadline) = CURDATE() THEN 'due_today'
+        WHEN t.deadline IS NOT NULL AND t.deadline <= DATE_ADD(NOW(), INTERVAL 72 HOUR) THEN 'due_soon'
+        WHEN t.planned_date IS NOT NULL AND t.planned_date < NOW() THEN 'past_planned'
+        WHEN t.planned_date IS NOT NULL AND DATE(t.planned_date) = CURDATE() THEN 'planned_today'
+        ELSE 'normal'
+    END as urgency_status,
     rt.name as recurrency_type
 FROM tasks t
 LEFT JOIN recurrency_types rt ON t.recurrency_type_id = rt.id
@@ -139,9 +155,18 @@ SELECT
     t.title,
     t.description,
     t.priority,
+    CASE 
+        WHEN t.priority <= 10 THEN 'Critical'
+        WHEN t.priority <= 25 THEN 'High'
+        WHEN t.priority <= 50 THEN 'Medium'
+        WHEN t.priority <= 75 THEN 'Low'
+        ELSE 'Very Low'
+    END as priority_label,
     t.deadline,
     t.planned_date,
     t.estimated_duration,
+    t.status,
+    'overdue' as urgency_status,
     DATEDIFF(NOW(), COALESCE(t.deadline, t.planned_date)) as days_overdue
 FROM tasks t
 WHERE (

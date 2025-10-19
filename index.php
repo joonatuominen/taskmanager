@@ -770,14 +770,17 @@ try {
             const [isExpanded, setIsExpanded] = useState(false);
             
             const getPriorityClass = (label) => {
+                if (!label) return 'priority-medium'; // fallback for missing priority_label
                 return `priority-${label.toLowerCase().replace(' ', '-')}`;
             };
 
             const getStatusClass = (status) => {
+                if (!status) return 'status-pending'; // fallback for missing status
                 return `status-${status.replace('_', '-')}`;
             };
 
             const getUrgencyClass = (status) => {
+                if (!status) return 'urgency-normal'; // fallback for missing urgency_status
                 return `urgency-${status.replace('_', '-')}`;
             };
 
@@ -827,7 +830,7 @@ try {
                                     {task.priority_label} ({task.priority})
                                 </span>
                                 <span className={`badge ${getStatusClass(task.status)}`}>
-                                    {task.status.replace('_', ' ')}
+                                    {task.status ? task.status.replace('_', ' ') : 'pending'}
                                 </span>
                                 {task.urgency_status && task.urgency_status !== 'normal' && (
                                     <span className={`badge ${getUrgencyClass(task.urgency_status)}`}>
