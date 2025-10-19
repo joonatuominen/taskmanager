@@ -150,7 +150,15 @@ class TaskDatabase {
      * Get all active tasks with filtering and sorting options
      */
     public function getTasks($filters = [], $orderBy = 'urgency_score', $orderDir = 'DESC', $limit = null) {
+        // Use task_dashboard for all tasks, or active_tasks for non-completed tasks
+        $useAllTasks = !empty($filters['status']) && in_array($filters['status'], ['completed', 'cancelled', 'on_hold']);
         $sql = "SELECT * FROM task_dashboard WHERE 1=1";
+        
+        // If no status filter is specified or only active statuses, filter out completed tasks by default
+        if (empty($filters['status']) || (!$useAllTasks && !in_array($filters['status'], ['completed', 'cancelled', 'on_hold']))) {
+            $sql .= " AND status IN ('pending', 'in_progress')";
+        }
+        
         $params = [];
         
         // Apply filters

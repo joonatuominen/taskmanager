@@ -107,8 +107,15 @@ try {
         
         .main-content {
             display: grid;
-            grid-template-columns: 250px 1fr;
             gap: 30px;
+        }
+        
+        .main-content.with-sidebar {
+            grid-template-columns: 250px 1fr;
+        }
+        
+        .main-content.without-sidebar {
+            grid-template-columns: 1fr;
         }
         
         .sidebar {
@@ -293,6 +300,22 @@ try {
         .status-pending { background: #e3f2fd; color: #1565c0; }
         .status-in-progress { background: #fff3e0; color: #e65100; }
         .status-completed { background: #e8f5e8; color: #2e7d32; }
+        .status-cancelled { background: #ffebee; color: #c62828; }
+        .status-on-hold { background: #f3e5f5; color: #7b1fa2; }
+        
+        .task-item.completed {
+            opacity: 0.8;
+            background-color: #f8f9fa;
+        }
+        
+        .task-item.completed .task-title {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        
+        .task-item.completed .task-meta {
+            color: #adb5bd;
+        }
         
         .urgency-overdue { background: #ffebee; color: #c62828; }
         .urgency-due-today { background: #fff3e0; color: #ef6c00; }
@@ -373,7 +396,8 @@ try {
         }
         
         @media (max-width: 768px) {
-            .main-content {
+            .main-content.with-sidebar,
+            .main-content.without-sidebar {
                 grid-template-columns: 1fr;
             }
             
@@ -552,7 +576,7 @@ try {
 
                     {stats && <StatsGrid stats={stats} />}
 
-                    <div className="main-content">
+                    <div className={`main-content ${activeTab === 'all' ? 'with-sidebar' : 'without-sidebar'}`}>
                         <Sidebar 
                             filters={filters}
                             onFilterChange={handleFilterChange}
@@ -764,7 +788,7 @@ try {
             const hasDescription = task.description && task.description.trim() !== '';
 
             return (
-                <div className="task-item">
+                <div className={`task-item ${task.status === 'completed' ? 'completed' : ''}`}>
                     <div className="task-content">
                         <div className="task-main">
                             <div className="task-title" onClick={hasDescription ? toggleDescription : undefined}>
@@ -827,6 +851,11 @@ try {
                                 >
                                     <i className="fas fa-check"></i> Complete
                                 </button>
+                            )}
+                            {task.status === 'completed' && (
+                                <span className="btn btn-success btn-sm" style={{cursor: 'default', opacity: 0.7}}>
+                                    <i className="fas fa-check-circle"></i> Completed
+                                </span>
                             )}
                         </div>
                     </div>

@@ -58,8 +58,12 @@ SELECT
     t.created_at,
     t.updated_at
 FROM tasks t
-LEFT JOIN recurrency_types rt ON t.recurrency_type_id = rt.id
-WHERE t.status IN ('pending', 'in_progress');
+LEFT JOIN recurrency_types rt ON t.recurrency_type_id = rt.id;
+
+-- View for active tasks (pending and in progress only)
+CREATE VIEW active_tasks AS
+SELECT * FROM task_dashboard 
+WHERE status IN ('pending', 'in_progress');
 
 -- View for today's tasks
 CREATE VIEW todays_tasks AS
