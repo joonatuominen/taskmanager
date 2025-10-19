@@ -305,6 +305,68 @@ try {
             gap: 8px;
         }
         
+        .task-edit-form {
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+        }
+        
+        .edit-field {
+            margin-bottom: 15px;
+        }
+        
+        .edit-field-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .edit-field label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .edit-input, .edit-textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+        }
+        
+        .edit-input:focus, .edit-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .edit-textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        
+        .edit-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+        
         .btn {
             padding: 8px 12px;
             border: none;
@@ -390,6 +452,11 @@ try {
             
             .main-content {
                 gap: 15px;
+            }
+            
+            .edit-field-row {
+                grid-template-columns: 1fr;
+                gap: 10px;
             }
         }
         
@@ -550,6 +617,33 @@ try {
                 }
             };
 
+            // Update task
+            const updateTask = async (taskId, updatedData) => {
+                try {
+                    const response = await fetch(`${API_BASE}/tasks/${taskId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(updatedData)
+                    });
+                    
+                    const data = await response.json();
+                    
+                    if (data.success) {
+                        fetchTasks(); // Refresh tasks
+                        fetchStats(); // Refresh stats
+                        return true;
+                    } else {
+                        setError(data.error || 'Failed to update task');
+                        return false;
+                    }
+                } catch (err) {
+                    setError('Network error: ' + err.message);
+                    return false;
+                }
+            };
+
             // Handle filter changes
             const handleFilterChange = (key, value) => {
                 setFilters(prev => ({
@@ -586,6 +680,7 @@ try {
                             activeTab={activeTab}
                             onTabChange={setActiveTab}
                             onCompleteTask={completeTask}
+                            onUpdateTask={updateTask}
                         />
                     </div>
                 </div>
@@ -695,7 +790,7 @@ try {
         }
 
         // Tasks Container Component
-        function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask }) {
+        function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask, onUpdateTask }) {
             const tabs = [
                 { id: 'all', label: 'All Tasks', icon: 'fas fa-list' },
                 { id: 'today', label: 'Today', icon: 'fas fa-calendar-day' },
@@ -754,6 +849,7 @@ try {
                                     key={task.id} 
                                     task={task} 
                                     onComplete={onCompleteTask}
+                                    onUpdate={onUpdateTask}
                                 />
                             ))
                         }
@@ -763,8 +859,17 @@ try {
         }
 
         // Task Item Component
-        function TaskItem({ task, onComplete }) {
+        function TaskItem({ task, onComplete, onUpdate }) {
             const [isExpanded, setIsExpanded] = useState(false);
+            const [isEditing, setIsEditing] = useState(false);
+            const [editData, setEditData] = useState({
+                title: task.title,
+                description: task.description || '',
+                priority: task.priority,
+                estimated_duration: task.estimated_duration || '',
+                deadline: task.deadline ? task.deadline.slice(0, 16) : '', // Format for datetime-local input
+                planned_date: task.planned_date ? task.planned_date.slice(0, 16) : ''
+            });
             
             const getPriorityClass = (label) => {
                 if (!label) return 'priority-medium'; // fallback for missing priority_label
@@ -785,74 +890,212 @@ try {
                 setIsExpanded(!isExpanded);
             };
 
+            const handleEditClick = () => {
+                setIsEditing(true);
+            };
+
+            const handleCancelEdit = () => {
+                setIsEditing(false);
+                // Reset edit data to original values
+                setEditData({
+                    title: task.title,
+                    description: task.description || '',
+                    priority: task.priority,
+                    estimated_duration: task.estimated_duration || '',
+                    deadline: task.deadline ? task.deadline.slice(0, 16) : '',
+                    planned_date: task.planned_date ? task.planned_date.slice(0, 16) : ''
+                });
+            };
+
+            const handleSaveEdit = async () => {
+                if (!editData.title.trim()) {
+                    alert('Title is required');
+                    return;
+                }
+
+                const success = await onUpdate(task.id, {
+                    title: editData.title,
+                    description: editData.description,
+                    priority: parseInt(editData.priority),
+                    estimated_duration: editData.estimated_duration ? parseInt(editData.estimated_duration) : null,
+                    deadline: editData.deadline || null,
+                    planned_date: editData.planned_date || null
+                });
+
+                if (success) {
+                    setIsEditing(false);
+                }
+            };
+
+            const handleInputChange = (field, value) => {
+                setEditData(prev => ({
+                    ...prev,
+                    [field]: value
+                }));
+            };
+
             const hasDescription = task.description && task.description.trim() !== '';
 
             return (
                 <div className={`task-item ${task.status === 'completed' ? 'completed' : ''}`}>
                     <div className="task-content">
-                        <div className="task-main">
-                            <div className="task-title" onClick={hasDescription ? toggleDescription : undefined}>
-                                {task.title}
-                                {hasDescription && (
-                                    <button className="task-expand-btn" onClick={toggleDescription}>
-                                        <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
-                                        {isExpanded ? 'Hide Details' : 'Show Details'}
-                                    </button>
-                                )}
-                            </div>
-                            
-                            {hasDescription && (
-                                <div className={`task-description has-content ${isExpanded ? 'expanded' : ''}`}>
-                                    {task.description}
+                        {isEditing ? (
+                            // Edit Mode
+                            <div className="task-edit-form">
+                                <div className="edit-field">
+                                    <label>Title *</label>
+                                    <input 
+                                        type="text" 
+                                        value={editData.title}
+                                        onChange={(e) => handleInputChange('title', e.target.value)}
+                                        className="edit-input"
+                                        placeholder="Task title"
+                                    />
                                 </div>
-                            )}
-                            
-                            <div className="task-meta">
-                                {task.estimated_duration && (
-                                    <span><i className="fas fa-clock"></i> {task.estimated_duration} min</span>
-                                )}
-                                {task.deadline_formatted && (
-                                    <span><i className="fas fa-calendar-times"></i> Due: {task.deadline_formatted}</span>
-                                )}
-                                {task.planned_date_formatted && (
-                                    <span><i className="fas fa-calendar-check"></i> Planned: {task.planned_date_formatted}</span>
-                                )}
-                                {task.urgency_score && (
-                                    <span><i className="fas fa-tachometer-alt"></i> Urgency: {task.urgency_score}</span>
-                                )}
+                                
+                                <div className="edit-field">
+                                    <label>Description</label>
+                                    <textarea 
+                                        value={editData.description}
+                                        onChange={(e) => handleInputChange('description', e.target.value)}
+                                        className="edit-textarea"
+                                        placeholder="Task description"
+                                        rows="3"
+                                    />
+                                </div>
+                                
+                                <div className="edit-field-row">
+                                    <div className="edit-field">
+                                        <label>Priority (1-100)</label>
+                                        <input 
+                                            type="number" 
+                                            min="1" 
+                                            max="100"
+                                            value={editData.priority}
+                                            onChange={(e) => handleInputChange('priority', e.target.value)}
+                                            className="edit-input"
+                                        />
+                                    </div>
+                                    
+                                    <div className="edit-field">
+                                        <label>Duration (minutes)</label>
+                                        <input 
+                                            type="number" 
+                                            min="1"
+                                            value={editData.estimated_duration}
+                                            onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
+                                            className="edit-input"
+                                            placeholder="Minutes"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="edit-field-row">
+                                    <div className="edit-field">
+                                        <label>Deadline</label>
+                                        <input 
+                                            type="datetime-local" 
+                                            value={editData.deadline}
+                                            onChange={(e) => handleInputChange('deadline', e.target.value)}
+                                            className="edit-input"
+                                        />
+                                    </div>
+                                    
+                                    <div className="edit-field">
+                                        <label>Planned Date</label>
+                                        <input 
+                                            type="datetime-local" 
+                                            value={editData.planned_date}
+                                            onChange={(e) => handleInputChange('planned_date', e.target.value)}
+                                            className="edit-input"
+                                        />
+                                    </div>
+                                </div>
+                                
+                                <div className="edit-actions">
+                                    <button className="btn btn-success btn-sm" onClick={handleSaveEdit}>
+                                        <i className="fas fa-check"></i> Save
+                                    </button>
+                                    <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit}>
+                                        <i className="fas fa-times"></i> Cancel
+                                    </button>
+                                </div>
                             </div>
+                        ) : (
+                            // View Mode
+                            <div className="task-main">
+                                <div className="task-title" onClick={hasDescription ? toggleDescription : undefined}>
+                                    {task.title}
+                                    {hasDescription && (
+                                        <button className="task-expand-btn" onClick={toggleDescription}>
+                                            <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
+                                            {isExpanded ? 'Hide Details' : 'Show Details'}
+                                        </button>
+                                    )}
+                                </div>
+                                
+                                {hasDescription && (
+                                    <div className={`task-description has-content ${isExpanded ? 'expanded' : ''}`}>
+                                        {task.description}
+                                    </div>
+                                )}
+                                
+                                <div className="task-meta">
+                                    {task.estimated_duration && (
+                                        <span><i className="fas fa-clock"></i> {task.estimated_duration} min</span>
+                                    )}
+                                    {task.deadline_formatted && (
+                                        <span><i className="fas fa-calendar-times"></i> Due: {task.deadline_formatted}</span>
+                                    )}
+                                    {task.planned_date_formatted && (
+                                        <span><i className="fas fa-calendar-check"></i> Planned: {task.planned_date_formatted}</span>
+                                    )}
+                                    {task.urgency_score && (
+                                        <span><i className="fas fa-tachometer-alt"></i> Urgency: {task.urgency_score}</span>
+                                    )}
+                                </div>
 
-                            <div className="task-badges">
-                                <span className={`badge ${getPriorityClass(task.priority_label)}`}>
-                                    {task.priority_label} ({task.priority})
-                                </span>
-                                <span className={`badge ${getStatusClass(task.status)}`}>
-                                    {task.status ? task.status.replace('_', ' ') : 'pending'}
-                                </span>
-                                {task.urgency_status && task.urgency_status !== 'normal' && (
-                                    <span className={`badge ${getUrgencyClass(task.urgency_status)}`}>
-                                        {task.urgency_status.replace('_', ' ')}
+                                <div className="task-badges">
+                                    <span className={`badge ${getPriorityClass(task.priority_label)}`}>
+                                        {task.priority_label} ({task.priority})
                                     </span>
-                                )}
-                                {task.recurrency_type && task.recurrency_type !== 'none' && (
-                                    <span className="badge" style={{background: '#e1f5fe', color: '#0277bd'}}>
-                                        <i className="fas fa-redo"></i> {task.recurrency_type}
+                                    <span className={`badge ${getStatusClass(task.status)}`}>
+                                        {task.status ? task.status.replace('_', ' ') : 'pending'}
                                     </span>
-                                )}
+                                    {task.urgency_status && task.urgency_status !== 'normal' && (
+                                        <span className={`badge ${getUrgencyClass(task.urgency_status)}`}>
+                                            {task.urgency_status.replace('_', ' ')}
+                                        </span>
+                                    )}
+                                    {task.recurrency_type && task.recurrency_type !== 'none' && (
+                                        <span className="badge" style={{background: '#e1f5fe', color: '#0277bd'}}>
+                                            <i className="fas fa-redo"></i> {task.recurrency_type}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         <div className="task-actions">
-                            {task.status === 'pending' && (
-                                <button 
-                                    className="btn btn-success btn-sm"
-                                    onClick={() => onComplete(task.id)}
-                                    title="Mark as completed"
-                                >
-                                    <i className="fas fa-check"></i> Complete
-                                </button>
+                            {!isEditing && task.status === 'pending' && (
+                                <>
+                                    <button 
+                                        className="btn btn-primary btn-sm"
+                                        onClick={handleEditClick}
+                                        title="Edit task"
+                                    >
+                                        <i className="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button 
+                                        className="btn btn-success btn-sm"
+                                        onClick={() => onComplete(task.id)}
+                                        title="Mark as completed"
+                                    >
+                                        <i className="fas fa-check"></i> Complete
+                                    </button>
+                                </>
                             )}
-                            {task.status === 'completed' && (
+                            {!isEditing && task.status === 'completed' && (
                                 <span className="btn btn-success btn-sm" style={{cursor: 'default', opacity: 0.7}}>
                                     <i className="fas fa-check-circle"></i> Completed
                                 </span>
