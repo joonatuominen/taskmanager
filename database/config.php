@@ -187,11 +187,19 @@ class TaskDatabase {
             $params['search'] = '%' . $filters['search'] . '%';
         }
         
-        // Apply ordering
+        // Apply ordering - overdue tasks should always come first
         $allowedOrderBy = ['urgency_score', 'priority', 'deadline', 'planned_date', 'created_at', 'title', 'description'];
         if (in_array($orderBy, $allowedOrderBy)) {
             $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
-            $sql .= " ORDER BY {$orderBy} {$orderDir}";
+            // Always prioritize overdue tasks first, then sort by the requested field
+            $sql .= " ORDER BY 
+                CASE WHEN urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
+                {$orderBy} {$orderDir}";
+        } else {
+            // Default ordering with overdue priority
+            $sql .= " ORDER BY 
+                CASE WHEN urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
+                urgency_score DESC";
         }
         
         // Apply limit
@@ -208,7 +216,9 @@ class TaskDatabase {
      * Get today's tasks
      */
     public function getTodaysTasks() {
-        $stmt = $this->connection->query("SELECT * FROM todays_tasks ORDER BY urgency_score DESC");
+        $stmt = $this->connection->query("SELECT * FROM todays_tasks ORDER BY 
+            CASE WHEN day_status = 'overdue' THEN 0 ELSE 1 END ASC,
+            urgency_score DESC");
         return $stmt->fetchAll();
     }
     
@@ -216,7 +226,10 @@ class TaskDatabase {
      * Get upcoming tasks (next 7 days)
      */
     public function getUpcomingTasks() {
-        $stmt = $this->connection->query("SELECT * FROM upcoming_tasks");
+        $stmt = $this->connection->query("SELECT * FROM upcoming_tasks ORDER BY 
+            CASE WHEN urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
+            CASE WHEN deadline IS NOT NULL THEN deadline ELSE planned_date END ASC,
+            priority ASC");
         return $stmt->fetchAll();
     }
     
@@ -224,7 +237,9 @@ class TaskDatabase {
      * Get overdue tasks
      */
     public function getOverdueTasks() {
-        $stmt = $this->connection->query("SELECT * FROM overdue_tasks");
+        $stmt = $this->connection->query("SELECT * FROM overdue_tasks ORDER BY 
+            days_overdue DESC, 
+            priority ASC");
         return $stmt->fetchAll();
     }
     
