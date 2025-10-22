@@ -31,7 +31,6 @@ try {
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
             margin: 0;
@@ -50,39 +49,6 @@ try {
             max-width: 100%;
             margin: 0;
             padding: 15px;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        
-        .stat-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
-            text-align: center;
-            transition: transform 0.2s ease;
-        }
-        
-        .stat-card:hover {
-            transform: translateY(-2px);
-        }
-        
-        .stat-number {
-            font-size: 2.5rem;
-            font-weight: 700;
-            margin-bottom: 8px;
-        }
-        
-        .stat-label {
-            color: #666;
-            font-size: 0.9rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
         }
         
         .main-content {
@@ -108,8 +74,8 @@ try {
         
         .add-task-grid {
             display: grid;
-            grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr auto;
-            gap: 15px;
+            grid-template-columns: 2fr 1fr 1fr 0.8fr 0.8fr 1.5fr auto;
+            gap: 10px;
             align-items: end;
         }
         
@@ -275,8 +241,7 @@ try {
         }
         
         .task-list {
-            max-height: 70vh;
-            overflow-y: auto;
+            /* Removed scrolling - show all tasks */
         }
         
         .task-item {
@@ -413,21 +378,22 @@ try {
         }
         
         .task-edit-form {
-            padding: 20px;
+            padding: 15px;
             background: #f8f9fa;
             border-radius: 8px;
             border: 2px solid #e9ecef;
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 0.8fr 0.8fr 1.5fr auto;
+            gap: 10px;
+            align-items: end;
         }
         
         .edit-field {
-            margin-bottom: 15px;
+            margin-bottom: 0;
         }
         
         .edit-field-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 15px;
-            margin-bottom: 15px;
+            display: contents;
         }
         
         .edit-field label {
@@ -676,11 +642,11 @@ try {
         // Task Manager App Component
         function TaskManager() {
             const [tasks, setTasks] = useState([]);
-            const [stats, setStats] = useState(null);
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [activeTab, setActiveTab] = useState('all');
             const [recurrencyTypes, setRecurrencyTypes] = useState([]);
+            const [taskCounts, setTaskCounts] = useState({});
             const [filters, setFilters] = useState({
                 status: '',
                 priority_min: '',
@@ -734,20 +700,6 @@ try {
                 }
             };
 
-            // Fetch statistics
-            const fetchStats = async () => {
-                try {
-                    const response = await fetch(`${API_BASE}/stats`);
-                    const data = await response.json();
-                    
-                    if (data.success) {
-                        setStats(data.data);
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch stats:', err);
-                }
-            };
-
             // Complete task
             const completeTask = async (taskId) => {
                 try {
@@ -763,7 +715,7 @@ try {
                     
                     if (data.success) {
                         fetchTasks(); // Refresh tasks
-                        fetchStats(); // Refresh stats
+                        fetchTaskCounts(); // Refresh counts
                     } else {
                         setError(data.error || 'Failed to update task');
                     }
@@ -787,7 +739,7 @@ try {
                     
                     if (data.success) {
                         fetchTasks(); // Refresh tasks
-                        fetchStats(); // Refresh stats
+                        fetchTaskCounts(); // Refresh counts
                         return true;
                     } else {
                         setError(data.error || 'Failed to update task');
@@ -820,32 +772,64 @@ try {
                 }
             };
 
+            // Fetch task counts for tabs
+            const fetchTaskCounts = async () => {
+                try {
+                    const counts = {};
+                    
+                    // Fetch counts for each tab
+                    const tabEndpoints = {
+                        all: `${API_BASE}/tasks`,
+                        today: `${API_BASE}/tasks/today`,
+                        upcoming: `${API_BASE}/tasks/upcoming`,
+                        overdue: `${API_BASE}/tasks/overdue`
+                    };
+
+                    for (const [tab, url] of Object.entries(tabEndpoints)) {
+                        try {
+                            const response = await fetch(url);
+                            const data = await response.json();
+                            if (data.success) {
+                                counts[tab] = data.data.length;
+                            }
+                        } catch (err) {
+                            console.error(`Failed to fetch ${tab} count:`, err);
+                        }
+                    }
+                    
+                    setTaskCounts(counts);
+                } catch (error) {
+                    console.error('Failed to fetch task counts:', error);
+                }
+            };
+
             // Effects
             useEffect(() => {
                 fetchTasks();
+                fetchTaskCounts();
             }, [activeTab, filters]);
 
             useEffect(() => {
-                fetchStats();
                 fetchRecurrencyTypes();
             }, []);
 
             return (
                 <div className="app-container">
-                    {stats && <StatsGrid stats={stats} />}
-
                     <div className="main-content">
+                        <AddTaskBar 
+                            recurrencyTypes={recurrencyTypes}
+                            onTaskAdded={() => {
+                                fetchTasks();
+                                fetchTaskCounts();
+                            }}
+                        />
+                        
                         {activeTab === 'all' && (
                             <FiltersBar 
                                 filters={filters}
                                 onFilterChange={handleFilterChange}
                             />
                         )}
-                        
-                        <AddTaskBar 
-                            recurrencyTypes={recurrencyTypes}
-                            onTaskAdded={fetchTasks}
-                        />
                         
                         <TasksContainer
                             tasks={tasks}
@@ -855,39 +839,8 @@ try {
                             onTabChange={setActiveTab}
                             onCompleteTask={completeTask}
                             onUpdateTask={updateTask}
+                            taskCounts={taskCounts}
                         />
-                    </div>
-                </div>
-            );
-        }
-
-        // Statistics Grid Component
-        function StatsGrid({ stats }) {
-            return (
-                <div className="stats-grid">
-                    <div className="stat-card">
-                        <div className="stat-number" style={{color: '#667eea'}}>
-                            {stats.total_tasks}
-                        </div>
-                        <div className="stat-label">Total Tasks</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number" style={{color: '#28a745'}}>
-                            {stats.completed_tasks}
-                        </div>
-                        <div className="stat-label">Completed</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number" style={{color: '#ffc107'}}>
-                            {stats.pending_tasks}
-                        </div>
-                        <div className="stat-label">Pending</div>
-                    </div>
-                    <div className="stat-card">
-                        <div className="stat-number" style={{color: '#dc3545'}}>
-                            {stats.overdue_tasks}
-                        </div>
-                        <div className="stat-label">Overdue</div>
                     </div>
                 </div>
             );
@@ -899,7 +852,7 @@ try {
                 <div className="filters-bar">
                     <div className="filters-grid">
                         <div className="filter-group">
-                            <label><i className="fas fa-flag"></i> Status</label>
+                            <label>Status</label>
                             <select 
                                 value={filters.status}
                                 onChange={(e) => onFilterChange('status', e.target.value)}
@@ -914,7 +867,7 @@ try {
                         </div>
 
                         <div className="filter-group">
-                            <label><i className="fas fa-exclamation-triangle"></i> Urgency</label>
+                            <label>Urgency</label>
                             <select 
                                 value={filters.urgency_status}
                                 onChange={(e) => onFilterChange('urgency_status', e.target.value)}
@@ -928,7 +881,7 @@ try {
                         </div>
 
                         <div className="filter-group">
-                            <label><i className="fas fa-sort-numeric-down"></i> Priority Range</label>
+                            <label>Priority Range</label>
                             <div className="priority-inputs">
                                 <input 
                                     type="number" 
@@ -950,7 +903,7 @@ try {
                         </div>
 
                         <div className="filter-group">
-                            <label><i className="fas fa-search"></i> Search Tasks</label>
+                            <label>Search Tasks</label>
                             <input 
                                 type="text" 
                                 placeholder="Search in title and description..."
@@ -978,10 +931,10 @@ try {
             const formatDateForStorage = (displayString) => {
                 if (!displayString) return null;
                 try {
-                    const match = displayString.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/);
+                    const match = displayString.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
                     if (match) {
-                        const [, day, month, year, hours, minutes] = match;
-                        return `${year}-${month}-${day} ${hours}:${minutes}:00`;
+                        const [, day, month, year] = match;
+                        return `${year}-${month}-${day}`;
                     }
                     return null;
                 } catch (e) {
@@ -995,25 +948,23 @@ try {
 
             const handleDateChange = (field, value) => {
                 if (value) {
-                    // Convert from datetime-local format to dd.mm.YYYY HH:mm
+                    // Convert from date format to dd.mm.YYYY
                     const date = new Date(value);
                     const day = String(date.getDate()).padStart(2, '0');
                     const month = String(date.getMonth() + 1).padStart(2, '0');
                     const year = date.getFullYear();
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    const formatted = `${day}.${month}.${year} ${hours}:${minutes}`;
+                    const formatted = `${day}.${month}.${year}`;
                     setFormData(prev => ({ ...prev, [field]: formatted }));
                 }
             };
 
-            const convertToDateTimeLocal = (ddmmyyyyString) => {
+            const convertToDateLocal = (ddmmyyyyString) => {
                 if (!ddmmyyyyString) return '';
                 try {
-                    const match = ddmmyyyyString.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/);
+                    const match = ddmmyyyyString.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
                     if (match) {
-                        const [, day, month, year, hours, minutes] = match;
-                        return `${year}-${month}-${day}T${hours}:${minutes}`;
+                        const [, day, month, year] = match;
+                        return `${year}-${month}-${day}`;
                     }
                     return '';
                 } catch (e) {
@@ -1065,11 +1016,11 @@ try {
 
             return (
                 <div className="add-task-bar">
-                    <h3 style={{ marginBottom: '20px' }}><i className="fas fa-plus-circle"></i> Add New Task</h3>
+                    <h3 style={{ marginBottom: '20px' }}>Add New Task</h3>
                     <form onSubmit={handleSubmit}>
                         <div className="add-task-grid">
                             <div className="add-task-field">
-                                <label><i className="fas fa-tasks"></i> Title *</label>
+                                <label>Title *</label>
                                 <input
                                     type="text"
                                     placeholder="Enter task title..."
@@ -1080,18 +1031,18 @@ try {
                             </div>
 
                             <div className="add-task-field">
-                                <label><i className="fas fa-calendar-alt"></i> Deadline</label>
+                                <label>Deadline</label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <input
                                         type="text"
-                                        placeholder="dd.mm.YYYY HH:mm"
+                                        placeholder="dd.mm.YYYY"
                                         value={formData.deadline}
                                         onChange={(e) => handleInputChange('deadline', e.target.value)}
                                         style={{ flex: 1 }}
                                     />
                                     <input
-                                        type="datetime-local"
-                                        value={convertToDateTimeLocal(formData.deadline)}
+                                        type="date"
+                                        value={convertToDateLocal(formData.deadline)}
                                         onChange={(e) => handleDateChange('deadline', e.target.value)}
                                         style={{ width: '40px', minWidth: '40px' }}
                                         title="Use date picker"
@@ -1100,18 +1051,18 @@ try {
                             </div>
 
                             <div className="add-task-field">
-                                <label><i className="fas fa-clock"></i> Planned Date</label>
+                                <label>Planned Date</label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                     <input
                                         type="text"
-                                        placeholder="dd.mm.YYYY HH:mm"
+                                        placeholder="dd.mm.YYYY"
                                         value={formData.planned_date}
                                         onChange={(e) => handleInputChange('planned_date', e.target.value)}
                                         style={{ flex: 1 }}
                                     />
                                     <input
-                                        type="datetime-local"
-                                        value={convertToDateTimeLocal(formData.planned_date)}
+                                        type="date"
+                                        value={convertToDateLocal(formData.planned_date)}
                                         onChange={(e) => handleDateChange('planned_date', e.target.value)}
                                         style={{ width: '40px', minWidth: '40px' }}
                                         title="Use date picker"
@@ -1120,7 +1071,7 @@ try {
                             </div>
 
                             <div className="add-task-field">
-                                <label><i className="fas fa-flag"></i> Priority</label>
+                                <label>Priority</label>
                                 <input
                                     type="number"
                                     min="1"
@@ -1132,7 +1083,7 @@ try {
                             </div>
 
                             <div className="add-task-field">
-                                <label><i className="fas fa-redo"></i> Recurring</label>
+                                <label>Recurring</label>
                                 <select
                                     value={formData.recurrency_type_id}
                                     onChange={(e) => handleInputChange('recurrency_type_id', e.target.value)}
@@ -1146,26 +1097,25 @@ try {
                                 </select>
                             </div>
 
+                            <div className="add-task-field">
+                                <label>Description</label>
+                                <input
+                                    type="text"
+                                    placeholder="Add description (optional)..."
+                                    value={formData.description}
+                                    onChange={(e) => handleInputChange('description', e.target.value)}
+                                />
+                            </div>
+
                             <div className="add-task-buttons">
                                 <button 
                                     type="submit" 
                                     disabled={isSubmitting || !formData.title.trim()}
                                     className="add-task-btn primary"
                                 >
-                                    {isSubmitting ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-check"></i>}
-                                    {isSubmitting ? ' Creating...' : ' Create'}
+                                    {isSubmitting ? 'Creating...' : 'Create'}
                                 </button>
                             </div>
-                        </div>
-
-                        <div className="add-task-field" style={{ marginTop: '15px' }}>
-                            <label><i className="fas fa-align-left"></i> Description</label>
-                            <textarea
-                                placeholder="Add task description (optional)..."
-                                value={formData.description}
-                                onChange={(e) => handleInputChange('description', e.target.value)}
-                                rows="2"
-                            />
                         </div>
                     </form>
                 </div>
@@ -1173,13 +1123,18 @@ try {
         };
 
         // Tasks Container Component
-        function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask, onUpdateTask }) {
+        function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask, onUpdateTask, taskCounts }) {
             const tabs = [
-                { id: 'all', label: 'All Tasks', icon: 'fas fa-list' },
-                { id: 'today', label: 'Today', icon: 'fas fa-calendar-day' },
-                { id: 'upcoming', label: 'Upcoming', icon: 'fas fa-clock' },
-                { id: 'overdue', label: 'Overdue', icon: 'fas fa-exclamation-triangle' }
+                { id: 'all', label: 'All Tasks' },
+                { id: 'today', label: 'Today' },
+                { id: 'upcoming', label: 'Upcoming' },
+                { id: 'overdue', label: 'Overdue' }
             ];
+
+            const getTabLabel = (tab) => {
+                const count = taskCounts && taskCounts[tab.id] !== undefined ? taskCounts[tab.id] : '';
+                return count !== '' ? `${tab.label} (${count})` : tab.label;
+            };
 
             return (
                 <div className="tasks-container">
@@ -1191,33 +1146,29 @@ try {
                                     className={`tab-button ${activeTab === tab.id ? 'active' : ''}`}
                                     onClick={() => onTabChange(tab.id)}
                                 >
-                                    <i className={tab.icon}></i> {tab.label}
+                                    {getTabLabel(tab)}
                                 </button>
                             ))}
                         </div>
                         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                            <div className="task-count">
-                                {tasks.length} tasks
-                            </div>
                         </div>
                     </div>
 
                     <div className="task-list">
                         {loading && (
                             <div className="loading">
-                                <i className="fas fa-spinner fa-spin"></i> Loading tasks...
+                                Loading tasks...
                             </div>
                         )}
 
                         {error && (
                             <div className="error">
-                                <i className="fas fa-exclamation-circle"></i> {error}
+                                {error}
                             </div>
                         )}
 
                         {!loading && !error && tasks.length === 0 && (
                             <div className="empty-state">
-                                <i className="fas fa-tasks"></i>
                                 <h3>No tasks found</h3>
                                 <p>No tasks match your current filters.</p>
                             </div>
@@ -1251,9 +1202,7 @@ try {
                     const day = String(date.getDate()).padStart(2, '0');
                     const month = String(date.getMonth() + 1).padStart(2, '0');
                     const year = date.getFullYear();
-                    const hours = String(date.getHours()).padStart(2, '0');
-                    const minutes = String(date.getMinutes()).padStart(2, '0');
-                    return `${day}.${month}.${year} ${hours}:${minutes}`;
+                    return `${day}.${month}.${year}`;
                 } catch (e) {
                     return '';
                 }
@@ -1262,11 +1211,11 @@ try {
             const formatDateForStorage = (displayString) => {
                 if (!displayString) return '';
                 try {
-                    // Parse dd.mm.YYYY HH:mm format
-                    const match = displayString.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/);
+                    // Parse dd.mm.YYYY format
+                    const match = displayString.match(/^(\d{2})\.(\d{2})\.(\d{4})$/);
                     if (match) {
-                        const [, day, month, year, hours, minutes] = match;
-                        return `${year}-${month}-${day} ${hours}:${minutes}:00`;
+                        const [, day, month, year] = match;
+                        return `${year}-${month}-${day}`;
                     }
                     return '';
                 } catch (e) {
@@ -1366,92 +1315,67 @@ try {
                                 </div>
                                 
                                 <div className="edit-field">
-                                    <label>Description</label>
-                                    <textarea 
-                                        value={editData.description}
-                                        onChange={(e) => handleInputChange('description', e.target.value)}
-                                        className="edit-textarea"
-                                        placeholder="Task description"
-                                        rows="3"
+                                    <label>Deadline</label>
+                                    <input 
+                                        type="date"
+                                        value={editData.deadline ? editData.deadline.slice(0, 10) : ''}
+                                        onChange={(e) => handleInputChange('deadline', e.target.value)}
+                                        className="edit-input"
                                     />
                                 </div>
                                 
-                                <div className="edit-field-row">
-                                    <div className="edit-field">
-                                        <label>Priority (1-100)</label>
-                                        <input 
-                                            type="number" 
-                                            min="1" 
-                                            max="100"
-                                            value={editData.priority}
-                                            onChange={(e) => handleInputChange('priority', e.target.value)}
-                                            className="edit-input"
-                                        />
-                                    </div>
-                                    
-                                    <div className="edit-field">
-                                        <label>Duration (minutes)</label>
-                                        <input 
-                                            type="number" 
-                                            min="1"
-                                            value={editData.estimated_duration}
-                                            onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
-                                            className="edit-input"
-                                            placeholder="Minutes"
-                                        />
-                                    </div>
+                                <div className="edit-field">
+                                    <label>Planned Date</label>
+                                    <input 
+                                        type="date"
+                                        value={editData.planned_date ? editData.planned_date.slice(0, 10) : ''}
+                                        onChange={(e) => handleInputChange('planned_date', e.target.value)}
+                                        className="edit-input"
+                                    />
                                 </div>
                                 
-                                <div className="edit-field-row">
-                                    <div className="edit-field">
-                                        <label>Deadline (dd.mm.YYYY HH:mm)</label>
-                                        <div className="date-input-group">
-                                            <input 
-                                                type="text" 
-                                                value={editData.deadline ? formatDateForDisplay(editData.deadline) : ''}
-                                                onChange={(e) => handleInputChange('deadline', formatDateForStorage(e.target.value))}
-                                                className="edit-input"
-                                                placeholder="21.10.2025 14:30"
-                                                pattern="\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}"
-                                            />
-                                            <input 
-                                                type="datetime-local" 
-                                                value={editData.deadline ? editData.deadline.slice(0, 16) : ''}
-                                                onChange={(e) => handleInputChange('deadline', e.target.value)}
-                                                className="calendar-picker"
-                                                title="Use calendar picker"
-                                            />
-                                        </div>
-                                    </div>
-                                    
-                                    <div className="edit-field">
-                                        <label>Planned Date (dd.mm.YYYY HH:mm)</label>
-                                        <div className="date-input-group">
-                                            <input 
-                                                type="text" 
-                                                value={editData.planned_date ? formatDateForDisplay(editData.planned_date) : ''}
-                                                onChange={(e) => handleInputChange('planned_date', formatDateForStorage(e.target.value))}
-                                                className="edit-input"
-                                                placeholder="21.10.2025 14:30"
-                                                pattern="\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}"
-                                            />
-                                            <input 
-                                                type="datetime-local" 
-                                                value={editData.planned_date ? editData.planned_date.slice(0, 16) : ''}
-                                                onChange={(e) => handleInputChange('planned_date', e.target.value)}
-                                                className="calendar-picker"
-                                                title="Use calendar picker"
-                                            />
-                                        </div>
-                                    </div>
+                                <div className="edit-field">
+                                    <label>Priority</label>
+                                    <input 
+                                        type="number" 
+                                        min="1" 
+                                        max="100"
+                                        value={editData.priority}
+                                        onChange={(e) => handleInputChange('priority', e.target.value)}
+                                        className="edit-input"
+                                        placeholder="1-100"
+                                    />
+                                </div>
+                                
+                                <div className="edit-field">
+                                    <label>Duration</label>
+                                    <input 
+                                        type="number" 
+                                        min="1"
+                                        value={editData.estimated_duration}
+                                        onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
+                                        className="edit-input"
+                                        placeholder="Minutes"
+                                    />
+                                </div>
+                                
+                                <div className="edit-field">
+                                    <label>Description</label>
+                                    <input 
+                                        type="text"
+                                        value={editData.description}
+                                        onChange={(e) => handleInputChange('description', e.target.value)}
+                                        className="edit-input"
+                                        placeholder="Description"
+                                    />
                                 </div>
                                 
                                 <div className="edit-actions">
                                     <button className="btn btn-success btn-sm" onClick={handleSaveEdit}>
-                                        <i className="fas fa-check"></i> Save
+                                        Save
                                     </button>
                                     <button className="btn btn-secondary btn-sm" onClick={handleCancelEdit}>
-                                        <i className="fas fa-times"></i> Cancel
+                                        Cancel
                                     </button>
                                 </div>
                             </div>
@@ -1462,7 +1386,6 @@ try {
                                     {task.title}
                                     {hasDescription && (
                                         <button className="task-expand-btn" onClick={toggleDescription}>
-                                            <i className={`fas fa-chevron-${isExpanded ? 'up' : 'down'}`}></i>
                                             {isExpanded ? 'Hide Details' : 'Show Details'}
                                         </button>
                                     )}
@@ -1476,16 +1399,16 @@ try {
                                 
                                 <div className="task-meta">
                                     {task.estimated_duration && (
-                                        <span><i className="fas fa-clock"></i> {task.estimated_duration} min</span>
+                                        <span>{task.estimated_duration} min</span>
                                     )}
                                     {task.deadline_formatted && (
-                                        <span><i className="fas fa-calendar-times"></i> Due: {task.deadline_formatted}</span>
+                                        <span>Due: {formatDateForDisplay(task.deadline)}</span>
                                     )}
                                     {task.planned_date_formatted && (
-                                        <span><i className="fas fa-calendar-check"></i> Planned: {task.planned_date_formatted}</span>
+                                        <span>Planned: {formatDateForDisplay(task.planned_date)}</span>
                                     )}
                                     {task.urgency_score && (
-                                        <span><i className="fas fa-tachometer-alt"></i> Urgency: {task.urgency_score}</span>
+                                        <span>Urgency: {task.urgency_score}</span>
                                     )}
                                 </div>
 
@@ -1503,7 +1426,7 @@ try {
                                     )}
                                     {task.recurrency_type && task.recurrency_type !== 'none' && (
                                         <span className="badge" style={{background: '#e1f5fe', color: '#0277bd'}}>
-                                            <i className="fas fa-redo"></i> {task.recurrency_type}
+                                            {task.recurrency_type}
                                         </span>
                                     )}
                                 </div>
@@ -1518,20 +1441,20 @@ try {
                                         onClick={handleEditClick}
                                         title="Edit task"
                                     >
-                                        <i className="fas fa-edit"></i> Edit
+                                        Edit
                                     </button>
                                     <button 
                                         className="btn btn-success btn-sm"
                                         onClick={() => onComplete(task.id)}
                                         title="Mark as completed"
                                     >
-                                        <i className="fas fa-check"></i> Complete
+                                        Complete
                                     </button>
                                 </>
                             )}
                             {!isEditing && task.status === 'completed' && (
                                 <span className="btn btn-success btn-sm" style={{cursor: 'default', opacity: 0.7}}>
-                                    <i className="fas fa-check-circle"></i> Completed
+                                    Completed
                                 </span>
                             )}
                         </div>
@@ -1547,11 +1470,11 @@ try {
             document.getElementById('root').innerHTML = `
                 <div class="app-container">
                     <div class="error">
-                        <h2><i class="fas fa-exclamation-triangle"></i> Database Setup Required</h2>
+                        <h2>Database Setup Required</h2>
                         <p><?php echo htmlspecialchars($errorMessage); ?></p>
                         <p style="margin-top: 15px;">
                             <a href="setup.php" class="btn btn-primary">
-                                <i class="fas fa-cog"></i> Go to Setup
+                                Go to Setup
                             </a>
                         </p>
                     </div>

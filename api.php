@@ -113,9 +113,9 @@ function getTasks($taskDb) {
     
     // Format dates for frontend
     foreach ($tasks as &$task) {
-        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y H:i', strtotime($task['deadline'])) : null;
-        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y H:i', strtotime($task['planned_date'])) : null;
-        $task['created_at_formatted'] = date('d.m.Y H:i', strtotime($task['created_at']));
+        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y', strtotime($task['deadline'])) : null;
+        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y', strtotime($task['planned_date'])) : null;
+        $task['created_at_formatted'] = date('d.m.Y', strtotime($task['created_at']));
         $task['urgency_score'] = round(floatval($task['urgency_score']), 1);
     }
     
@@ -133,8 +133,8 @@ function getTodaysTasks($taskDb) {
     $tasks = $taskDb->getTodaysTasks();
     
     foreach ($tasks as &$task) {
-        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y H:i', strtotime($task['deadline'])) : null;
-        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y H:i', strtotime($task['planned_date'])) : null;
+        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y', strtotime($task['deadline'])) : null;
+        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y', strtotime($task['planned_date'])) : null;
         $task['urgency_score'] = round(floatval($task['urgency_score']), 1);
     }
     
@@ -152,8 +152,8 @@ function getUpcomingTasks($taskDb) {
     $tasks = $taskDb->getUpcomingTasks();
     
     foreach ($tasks as &$task) {
-        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y H:i', strtotime($task['deadline'])) : null;
-        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y H:i', strtotime($task['planned_date'])) : null;
+        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y', strtotime($task['deadline'])) : null;
+        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y', strtotime($task['planned_date'])) : null;
     }
     
     echo json_encode([
@@ -170,8 +170,8 @@ function getOverdueTasks($taskDb) {
     $tasks = $taskDb->getOverdueTasks();
     
     foreach ($tasks as &$task) {
-        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y H:i', strtotime($task['deadline'])) : null;
-        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y H:i', strtotime($task['planned_date'])) : null;
+        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y', strtotime($task['deadline'])) : null;
+        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y', strtotime($task['planned_date'])) : null;
     }
     
     echo json_encode([
@@ -188,9 +188,9 @@ function getTask($taskDb, $id) {
     $task = $taskDb->getTask($id);
     
     if ($task) {
-        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y H:i', strtotime($task['deadline'])) : null;
-        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y H:i', strtotime($task['planned_date'])) : null;
-        $task['created_at_formatted'] = date('d.m.Y H:i', strtotime($task['created_at']));
+        $task['deadline_formatted'] = $task['deadline'] ? date('d.m.Y', strtotime($task['deadline'])) : null;
+        $task['planned_date_formatted'] = $task['planned_date'] ? date('d.m.Y', strtotime($task['planned_date'])) : null;
+        $task['created_at_formatted'] = date('d.m.Y', strtotime($task['created_at']));
         $task['urgency_score'] = round(floatval($task['urgency_score']), 1);
         
         echo json_encode([
