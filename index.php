@@ -97,6 +97,113 @@ try {
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         
+        .add-task-bar {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 2px solid #667eea;
+        }
+        
+        .add-task-grid {
+            display: grid;
+            grid-template-columns: 2fr 1.5fr 1.5fr 1fr 1fr auto;
+            gap: 15px;
+            align-items: end;
+        }
+        
+        .add-task-field {
+            margin-bottom: 0;
+        }
+        
+        .add-task-field label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 0.9rem;
+        }
+        
+        .add-task-field input,
+        .add-task-field select,
+        .add-task-field textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.2s ease;
+            resize: none;
+        }
+        
+        .add-task-field textarea {
+            min-height: 40px;
+            max-height: 80px;
+        }
+        
+        .add-task-field input:focus,
+        .add-task-field select:focus,
+        .add-task-field textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-task-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .add-task-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            white-space: nowrap;
+        }
+        
+        .add-task-btn.primary {
+            background: #667eea;
+            color: white;
+        }
+        
+        .add-task-btn.primary:hover {
+            background: #5a6fd8;
+        }
+        
+        .add-task-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .add-task-btn.secondary:hover {
+            background: #5a6268;
+        }
+        
+        .add-task-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        @media (max-width: 768px) {
+            .add-task-grid {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
+            .add-task-buttons {
+                flex-direction: row;
+                justify-content: space-between;
+            }
+            
+            .add-task-btn {
+                flex: 1;
+            }
+        }
+        
         .filters-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
@@ -358,6 +465,53 @@ try {
             border-top: 1px solid #e9ecef;
         }
         
+        .date-input-group {
+            display: flex;
+            gap: 5px;
+            align-items: center;
+        }
+        
+        .date-input-group .edit-input {
+            flex: 1;
+        }
+        
+        .calendar-picker {
+            width: 40px;
+            height: 40px;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #f8f9fa;
+            transition: all 0.2s ease;
+            position: relative;
+            color: transparent;
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='%23666' d='M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM2 2a1 1 0 0 0-1 1v1h14V3a1 1 0 0 0-1-1H2zm13 3H1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V5z'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: center;
+            background-size: 16px 16px;
+        }
+        
+        .calendar-picker::-webkit-calendar-picker-indicator {
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+        
+        .calendar-picker:hover {
+            border-color: #667eea;
+            background: #fff;
+        }
+        
+        .calendar-picker:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
         .btn-secondary {
             background: #6c757d;
             color: white;
@@ -526,6 +680,7 @@ try {
             const [loading, setLoading] = useState(true);
             const [error, setError] = useState(null);
             const [activeTab, setActiveTab] = useState('all');
+            const [recurrencyTypes, setRecurrencyTypes] = useState([]);
             const [filters, setFilters] = useState({
                 status: '',
                 priority_min: '',
@@ -652,6 +807,19 @@ try {
                 }));
             };
 
+            // Fetch recurrency types
+            const fetchRecurrencyTypes = async () => {
+                try {
+                    const response = await fetch(`${API_BASE}/recurrency-types`);
+                    const data = await response.json();
+                    if (data.success) {
+                        setRecurrencyTypes(data.data);
+                    }
+                } catch (error) {
+                    console.error('Failed to fetch recurrency types:', error);
+                }
+            };
+
             // Effects
             useEffect(() => {
                 fetchTasks();
@@ -659,6 +827,7 @@ try {
 
             useEffect(() => {
                 fetchStats();
+                fetchRecurrencyTypes();
             }, []);
 
             return (
@@ -672,6 +841,11 @@ try {
                                 onFilterChange={handleFilterChange}
                             />
                         )}
+                        
+                        <AddTaskBar 
+                            recurrencyTypes={recurrencyTypes}
+                            onTaskAdded={fetchTasks}
+                        />
                         
                         <TasksContainer
                             tasks={tasks}
@@ -789,6 +963,215 @@ try {
             );
         }
 
+        // Add Task Bar Component
+        function AddTaskBar({ recurrencyTypes, onTaskAdded }) {
+            const [formData, setFormData] = React.useState({
+                title: '',
+                description: '',
+                deadline: '',
+                planned_date: '',
+                priority: 50,
+                recurrency_type_id: ''
+            });
+            const [isSubmitting, setIsSubmitting] = React.useState(false);
+
+            const formatDateForStorage = (displayString) => {
+                if (!displayString) return null;
+                try {
+                    const match = displayString.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/);
+                    if (match) {
+                        const [, day, month, year, hours, minutes] = match;
+                        return `${year}-${month}-${day} ${hours}:${minutes}:00`;
+                    }
+                    return null;
+                } catch (e) {
+                    return null;
+                }
+            };
+
+            const handleInputChange = (field, value) => {
+                setFormData(prev => ({ ...prev, [field]: value }));
+            };
+
+            const handleDateChange = (field, value) => {
+                if (value) {
+                    // Convert from datetime-local format to dd.mm.YYYY HH:mm
+                    const date = new Date(value);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    const formatted = `${day}.${month}.${year} ${hours}:${minutes}`;
+                    setFormData(prev => ({ ...prev, [field]: formatted }));
+                }
+            };
+
+            const convertToDateTimeLocal = (ddmmyyyyString) => {
+                if (!ddmmyyyyString) return '';
+                try {
+                    const match = ddmmyyyyString.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/);
+                    if (match) {
+                        const [, day, month, year, hours, minutes] = match;
+                        return `${year}-${month}-${day}T${hours}:${minutes}`;
+                    }
+                    return '';
+                } catch (e) {
+                    return '';
+                }
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!formData.title.trim()) return;
+
+                setIsSubmitting(true);
+                try {
+                    const dataToSend = {
+                        ...formData,
+                        deadline: formatDateForStorage(formData.deadline),
+                        planned_date: formatDateForStorage(formData.planned_date),
+                        priority: parseInt(formData.priority) || 50,
+                        recurrency_type_id: formData.recurrency_type_id ? parseInt(formData.recurrency_type_id) : null
+                    };
+
+                    const response = await fetch('/taskmanager/api.php/tasks', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(dataToSend)
+                    });
+
+                    const result = await response.json();
+                    if (result.success) {
+                        // Reset form
+                        setFormData({
+                            title: '',
+                            description: '',
+                            deadline: '',
+                            planned_date: '',
+                            priority: 50,
+                            recurrency_type_id: ''
+                        });
+                        onTaskAdded();
+                    } else {
+                        alert('Error: ' + (result.error || 'Failed to create task'));
+                    }
+                } catch (error) {
+                    alert('Error: ' + error.message);
+                } finally {
+                    setIsSubmitting(false);
+                }
+            };
+
+            return (
+                <div className="add-task-bar">
+                    <h3 style={{ marginBottom: '20px' }}><i className="fas fa-plus-circle"></i> Add New Task</h3>
+                    <form onSubmit={handleSubmit}>
+                        <div className="add-task-grid">
+                            <div className="add-task-field">
+                                <label><i className="fas fa-tasks"></i> Title *</label>
+                                <input
+                                    type="text"
+                                    placeholder="Enter task title..."
+                                    value={formData.title}
+                                    onChange={(e) => handleInputChange('title', e.target.value)}
+                                    required
+                                />
+                            </div>
+
+                            <div className="add-task-field">
+                                <label><i className="fas fa-calendar-alt"></i> Deadline</label>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="dd.mm.YYYY HH:mm"
+                                        value={formData.deadline}
+                                        onChange={(e) => handleInputChange('deadline', e.target.value)}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <input
+                                        type="datetime-local"
+                                        value={convertToDateTimeLocal(formData.deadline)}
+                                        onChange={(e) => handleDateChange('deadline', e.target.value)}
+                                        style={{ width: '40px', minWidth: '40px' }}
+                                        title="Use date picker"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="add-task-field">
+                                <label><i className="fas fa-clock"></i> Planned Date</label>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <input
+                                        type="text"
+                                        placeholder="dd.mm.YYYY HH:mm"
+                                        value={formData.planned_date}
+                                        onChange={(e) => handleInputChange('planned_date', e.target.value)}
+                                        style={{ flex: 1 }}
+                                    />
+                                    <input
+                                        type="datetime-local"
+                                        value={convertToDateTimeLocal(formData.planned_date)}
+                                        onChange={(e) => handleDateChange('planned_date', e.target.value)}
+                                        style={{ width: '40px', minWidth: '40px' }}
+                                        title="Use date picker"
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="add-task-field">
+                                <label><i className="fas fa-flag"></i> Priority</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    max="100"
+                                    placeholder="1-100"
+                                    value={formData.priority}
+                                    onChange={(e) => handleInputChange('priority', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="add-task-field">
+                                <label><i className="fas fa-redo"></i> Recurring</label>
+                                <select
+                                    value={formData.recurrency_type_id}
+                                    onChange={(e) => handleInputChange('recurrency_type_id', e.target.value)}
+                                >
+                                    <option value="">No Recurrence</option>
+                                    {recurrencyTypes.map(type => (
+                                        <option key={type.id} value={type.id}>
+                                            {type.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div className="add-task-buttons">
+                                <button 
+                                    type="submit" 
+                                    disabled={isSubmitting || !formData.title.trim()}
+                                    className="add-task-btn primary"
+                                >
+                                    {isSubmitting ? <i className="fas fa-spinner fa-spin"></i> : <i className="fas fa-check"></i>}
+                                    {isSubmitting ? ' Creating...' : ' Create'}
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="add-task-field" style={{ marginTop: '15px' }}>
+                            <label><i className="fas fa-align-left"></i> Description</label>
+                            <textarea
+                                placeholder="Add task description (optional)..."
+                                value={formData.description}
+                                onChange={(e) => handleInputChange('description', e.target.value)}
+                                rows="2"
+                            />
+                        </div>
+                    </form>
+                </div>
+            );
+        };
+
         // Tasks Container Component
         function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask, onUpdateTask }) {
             const tabs = [
@@ -813,9 +1196,6 @@ try {
                             ))}
                         </div>
                         <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-                            <a href="add_task.php" className="btn btn-primary btn-sm">
-                                <i className="fas fa-plus"></i> Add Task
-                            </a>
                             <div className="task-count">
                                 {tasks.length} tasks
                             </div>
@@ -862,13 +1242,45 @@ try {
         function TaskItem({ task, onComplete, onUpdate }) {
             const [isExpanded, setIsExpanded] = useState(false);
             const [isEditing, setIsEditing] = useState(false);
+
+            // Format functions for date conversion
+            const formatDateForDisplay = (dateString) => {
+                if (!dateString) return '';
+                try {
+                    const date = new Date(dateString);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    const hours = String(date.getHours()).padStart(2, '0');
+                    const minutes = String(date.getMinutes()).padStart(2, '0');
+                    return `${day}.${month}.${year} ${hours}:${minutes}`;
+                } catch (e) {
+                    return '';
+                }
+            };
+
+            const formatDateForStorage = (displayString) => {
+                if (!displayString) return '';
+                try {
+                    // Parse dd.mm.YYYY HH:mm format
+                    const match = displayString.match(/^(\d{2})\.(\d{2})\.(\d{4}) (\d{2}):(\d{2})$/);
+                    if (match) {
+                        const [, day, month, year, hours, minutes] = match;
+                        return `${year}-${month}-${day} ${hours}:${minutes}:00`;
+                    }
+                    return '';
+                } catch (e) {
+                    return '';
+                }
+            };
+
             const [editData, setEditData] = useState({
                 title: task.title,
                 description: task.description || '',
                 priority: task.priority,
                 estimated_duration: task.estimated_duration || '',
-                deadline: task.deadline ? task.deadline.slice(0, 16) : '', // Format for datetime-local input
-                planned_date: task.planned_date ? task.planned_date.slice(0, 16) : ''
+                deadline: task.deadline || '',
+                planned_date: task.planned_date || ''
             });
             
             const getPriorityClass = (label) => {
@@ -902,8 +1314,8 @@ try {
                     description: task.description || '',
                     priority: task.priority,
                     estimated_duration: task.estimated_duration || '',
-                    deadline: task.deadline ? task.deadline.slice(0, 16) : '',
-                    planned_date: task.planned_date ? task.planned_date.slice(0, 16) : ''
+                    deadline: task.deadline || '',
+                    planned_date: task.planned_date || ''
                 });
             };
 
@@ -992,23 +1404,45 @@ try {
                                 
                                 <div className="edit-field-row">
                                     <div className="edit-field">
-                                        <label>Deadline</label>
-                                        <input 
-                                            type="datetime-local" 
-                                            value={editData.deadline}
-                                            onChange={(e) => handleInputChange('deadline', e.target.value)}
-                                            className="edit-input"
-                                        />
+                                        <label>Deadline (dd.mm.YYYY HH:mm)</label>
+                                        <div className="date-input-group">
+                                            <input 
+                                                type="text" 
+                                                value={editData.deadline ? formatDateForDisplay(editData.deadline) : ''}
+                                                onChange={(e) => handleInputChange('deadline', formatDateForStorage(e.target.value))}
+                                                className="edit-input"
+                                                placeholder="21.10.2025 14:30"
+                                                pattern="\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}"
+                                            />
+                                            <input 
+                                                type="datetime-local" 
+                                                value={editData.deadline ? editData.deadline.slice(0, 16) : ''}
+                                                onChange={(e) => handleInputChange('deadline', e.target.value)}
+                                                className="calendar-picker"
+                                                title="Use calendar picker"
+                                            />
+                                        </div>
                                     </div>
                                     
                                     <div className="edit-field">
-                                        <label>Planned Date</label>
-                                        <input 
-                                            type="datetime-local" 
-                                            value={editData.planned_date}
-                                            onChange={(e) => handleInputChange('planned_date', e.target.value)}
-                                            className="edit-input"
-                                        />
+                                        <label>Planned Date (dd.mm.YYYY HH:mm)</label>
+                                        <div className="date-input-group">
+                                            <input 
+                                                type="text" 
+                                                value={editData.planned_date ? formatDateForDisplay(editData.planned_date) : ''}
+                                                onChange={(e) => handleInputChange('planned_date', formatDateForStorage(e.target.value))}
+                                                className="edit-input"
+                                                placeholder="21.10.2025 14:30"
+                                                pattern="\d{2}\.\d{2}\.\d{4} \d{2}:\d{2}"
+                                            />
+                                            <input 
+                                                type="datetime-local" 
+                                                value={editData.planned_date ? editData.planned_date.slice(0, 16) : ''}
+                                                onChange={(e) => handleInputChange('planned_date', e.target.value)}
+                                                className="calendar-picker"
+                                                title="Use calendar picker"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
                                 
