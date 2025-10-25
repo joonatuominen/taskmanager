@@ -160,6 +160,11 @@ try {
                 gap: 15px;
             }
             
+            .task-edit-form {
+                grid-template-columns: 1fr;
+                gap: 15px;
+            }
+            
             .add-task-buttons {
                 flex-direction: row;
                 justify-content: space-between;
@@ -383,7 +388,7 @@ try {
             border-radius: 8px;
             border: 2px solid #e9ecef;
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 0.8fr 0.8fr 1.5fr auto;
+            grid-template-columns: 2fr 1fr 1fr 0.8fr 0.8fr 2.5fr auto;
             gap: 10px;
             align-items: end;
         }
@@ -840,6 +845,7 @@ try {
                             onCompleteTask={completeTask}
                             onUpdateTask={updateTask}
                             taskCounts={taskCounts}
+                            recurrencyTypes={recurrencyTypes}
                         />
                     </div>
                 </div>
@@ -859,10 +865,7 @@ try {
                             >
                                 <option value="">All Statuses</option>
                                 <option value="pending">Pending</option>
-                                <option value="in_progress">In Progress</option>
                                 <option value="completed">Completed</option>
-                                <option value="cancelled">Cancelled</option>
-                                <option value="on_hold">On Hold</option>
                             </select>
                         </div>
 
@@ -924,7 +927,8 @@ try {
                 deadline: '',
                 planned_date: '',
                 priority: 50,
-                recurrency_type_id: ''
+                estimated_duration: '',
+                recurrency_type_id: 1
             });
             const [isSubmitting, setIsSubmitting] = React.useState(false);
 
@@ -983,7 +987,8 @@ try {
                         deadline: formatDateForStorage(formData.deadline),
                         planned_date: formatDateForStorage(formData.planned_date),
                         priority: parseInt(formData.priority) || 50,
-                        recurrency_type_id: formData.recurrency_type_id ? parseInt(formData.recurrency_type_id) : null
+                        estimated_duration: parseInt(formData.estimated_duration) || null,
+                        recurrency_type_id: formData.recurrency_type_id ? parseInt(formData.recurrency_type_id) : 1
                     };
 
                     const response = await fetch('/taskmanager/api.php/tasks', {
@@ -1001,7 +1006,8 @@ try {
                             deadline: '',
                             planned_date: '',
                             priority: 50,
-                            recurrency_type_id: ''
+                            estimated_duration: '',
+                            recurrency_type_id: 1
                         });
                         onTaskAdded();
                     } else {
@@ -1083,12 +1089,23 @@ try {
                             </div>
 
                             <div className="add-task-field">
+                                <label>Duration</label>
+                                <input
+                                    type="number"
+                                    min="1"
+                                    placeholder="Minutes"
+                                    value={formData.estimated_duration}
+                                    onChange={(e) => handleInputChange('estimated_duration', e.target.value)}
+                                />
+                            </div>
+
+                            <div className="add-task-field">
                                 <label>Recurring</label>
                                 <select
                                     value={formData.recurrency_type_id}
                                     onChange={(e) => handleInputChange('recurrency_type_id', e.target.value)}
                                 >
-                                    <option value="">No Recurrence</option>
+                                    <option value="1">No Recurrence</option>
                                     {recurrencyTypes.map(type => (
                                         <option key={type.id} value={type.id}>
                                             {type.name}
@@ -1123,7 +1140,7 @@ try {
         };
 
         // Tasks Container Component
-        function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask, onUpdateTask, taskCounts }) {
+        function TasksContainer({ tasks, loading, error, activeTab, onTabChange, onCompleteTask, onUpdateTask, taskCounts, recurrencyTypes }) {
             const tabs = [
                 { id: 'all', label: 'All Tasks' },
                 { id: 'today', label: 'Today' },
@@ -1181,6 +1198,7 @@ try {
                                     task={task} 
                                     onComplete={onCompleteTask}
                                     onUpdate={onUpdateTask}
+                                    recurrencyTypes={recurrencyTypes}
                                 />
                             ))
                         }
@@ -1190,7 +1208,7 @@ try {
         }
 
         // Task Item Component
-        function TaskItem({ task, onComplete, onUpdate }) {
+        function TaskItem({ task, onComplete, onUpdate, recurrencyTypes }) {
             const [isExpanded, setIsExpanded] = useState(false);
             const [isEditing, setIsEditing] = useState(false);
 
@@ -1229,8 +1247,22 @@ try {
                 priority: task.priority,
                 estimated_duration: task.estimated_duration || '',
                 deadline: task.deadline || '',
-                planned_date: task.planned_date || ''
+                planned_date: task.planned_date || '',
+                recurrency_type_id: task.recurrency_type_id && task.recurrency_type_id !== 0 ? task.recurrency_type_id : 1
             });
+            
+            // Update editData when task changes (e.g., after a task update)
+            React.useEffect(() => {
+                setEditData({
+                    title: task.title,
+                    description: task.description || '',
+                    priority: task.priority,
+                    estimated_duration: task.estimated_duration || '',
+                    deadline: task.deadline || '',
+                    planned_date: task.planned_date || '',
+                    recurrency_type_id: task.recurrency_type_id && task.recurrency_type_id !== 0 ? task.recurrency_type_id : 1
+                });
+            }, [task]);
             
             const getPriorityClass = (label) => {
                 if (!label) return 'priority-medium'; // fallback for missing priority_label
@@ -1264,7 +1296,8 @@ try {
                     priority: task.priority,
                     estimated_duration: task.estimated_duration || '',
                     deadline: task.deadline || '',
-                    planned_date: task.planned_date || ''
+                    planned_date: task.planned_date || '',
+                    recurrency_type_id: task.recurrency_type_id && task.recurrency_type_id !== 0 ? task.recurrency_type_id : 1
                 });
             };
 
@@ -1280,7 +1313,8 @@ try {
                     priority: parseInt(editData.priority),
                     estimated_duration: editData.estimated_duration ? parseInt(editData.estimated_duration) : null,
                     deadline: editData.deadline || null,
-                    planned_date: editData.planned_date || null
+                    planned_date: editData.planned_date || null,
+                    recurrency_type_id: editData.recurrency_type_id ? parseInt(editData.recurrency_type_id) : 1
                 });
 
                 if (success) {
@@ -1293,6 +1327,22 @@ try {
                     ...prev,
                     [field]: value
                 }));
+            };
+
+            const handleDateChange = (field, value) => {
+                if (value) {
+                    // Convert from date format to dd.mm.YYYY for display
+                    const date = new Date(value);
+                    const day = String(date.getDate()).padStart(2, '0');
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const year = date.getFullYear();
+                    const formatted = `${day}.${month}.${year}`;
+                    // Store as storage format (YYYY-MM-DD)
+                    setEditData(prev => ({
+                        ...prev,
+                        [field]: formatDateForStorage(formatted)
+                    }));
+                }
             };
 
             const hasDescription = task.description && task.description.trim() !== '';
@@ -1316,22 +1366,58 @@ try {
                                 
                                 <div className="edit-field">
                                     <label>Deadline</label>
-                                    <input 
-                                        type="date"
-                                        value={editData.deadline ? editData.deadline.slice(0, 10) : ''}
-                                        onChange={(e) => handleInputChange('deadline', e.target.value)}
-                                        className="edit-input"
-                                    />
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <input 
+                                            type="text"
+                                            value={editData.deadline ? formatDateForDisplay(editData.deadline) : ''}
+                                            onChange={(e) => handleInputChange('deadline', formatDateForStorage(e.target.value))}
+                                            className="edit-input"
+                                            placeholder="dd.mm.YYYY"
+                                            style={{ flex: 1 }}
+                                        />
+                                        <input
+                                            type="date"
+                                            value={editData.deadline ? editData.deadline.slice(0, 10) : ''}
+                                            onChange={(e) => handleDateChange('deadline', e.target.value)}
+                                            style={{ 
+                                                width: '40px', 
+                                                minWidth: '40px',
+                                                color: 'transparent',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                cursor: 'pointer'
+                                            }}
+                                            title="Use date picker"
+                                        />
+                                    </div>
                                 </div>
                                 
                                 <div className="edit-field">
                                     <label>Planned Date</label>
-                                    <input 
-                                        type="date"
-                                        value={editData.planned_date ? editData.planned_date.slice(0, 10) : ''}
-                                        onChange={(e) => handleInputChange('planned_date', e.target.value)}
-                                        className="edit-input"
-                                    />
+                                    <div style={{ display: 'flex', gap: '10px' }}>
+                                        <input 
+                                            type="text"
+                                            value={editData.planned_date ? formatDateForDisplay(editData.planned_date) : ''}
+                                            onChange={(e) => handleInputChange('planned_date', formatDateForStorage(e.target.value))}
+                                            className="edit-input"
+                                            placeholder="dd.mm.YYYY"
+                                            style={{ flex: 1 }}
+                                        />
+                                        <input
+                                            type="date"
+                                            value={editData.planned_date ? editData.planned_date.slice(0, 10) : ''}
+                                            onChange={(e) => handleDateChange('planned_date', e.target.value)}
+                                            style={{ 
+                                                width: '40px', 
+                                                minWidth: '40px',
+                                                color: 'transparent',
+                                                border: 'none',
+                                                background: 'transparent',
+                                                cursor: 'pointer'
+                                            }}
+                                            title="Use date picker"
+                                        />
+                                    </div>
                                 </div>
                                 
                                 <div className="edit-field">
@@ -1368,6 +1454,22 @@ try {
                                         className="edit-input"
                                         placeholder="Description"
                                     />
+                                </div>
+                                
+                                <div className="edit-field">
+                                    <label>Recurring</label>
+                                    <select
+                                        value={editData.recurrency_type_id}
+                                        onChange={(e) => handleInputChange('recurrency_type_id', e.target.value)}
+                                        className="edit-input"
+                                    >
+                                        <option value="1">No Recurrence</option>
+                                        {recurrencyTypes.map(type => (
+                                            <option key={type.id} value={type.id}>
+                                                {type.name}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                                 
                                 <div className="edit-actions">

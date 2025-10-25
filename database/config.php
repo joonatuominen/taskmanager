@@ -152,38 +152,40 @@ class TaskDatabase {
     public function getTasks($filters = [], $orderBy = 'urgency_score', $orderDir = 'DESC', $limit = null) {
         // Use task_dashboard for all tasks, or active_tasks for non-completed tasks
         $useAllTasks = !empty($filters['status']) && in_array($filters['status'], ['completed', 'cancelled', 'on_hold']);
-        $sql = "SELECT * FROM task_dashboard WHERE 1=1";
+        $sql = "SELECT td.*, t.recurrency_type_id FROM task_dashboard td 
+                LEFT JOIN tasks t ON td.id = t.id 
+                WHERE 1=1";
         
         // If no status filter is specified or only active statuses, filter out completed tasks by default
         if (empty($filters['status']) || (!$useAllTasks && !in_array($filters['status'], ['completed', 'cancelled', 'on_hold']))) {
-            $sql .= " AND status IN ('pending', 'in_progress')";
+            $sql .= " AND td.status IN ('pending', 'in_progress')";
         }
         
         $params = [];
         
         // Apply filters
         if (!empty($filters['status'])) {
-            $sql .= " AND status = :status";
+            $sql .= " AND td.status = :status";
             $params['status'] = $filters['status'];
         }
         
         if (!empty($filters['priority_min'])) {
-            $sql .= " AND priority >= :priority_min";
+            $sql .= " AND td.priority >= :priority_min";
             $params['priority_min'] = $filters['priority_min'];
         }
         
         if (!empty($filters['priority_max'])) {
-            $sql .= " AND priority <= :priority_max";
+            $sql .= " AND td.priority <= :priority_max";
             $params['priority_max'] = $filters['priority_max'];
         }
         
         if (!empty($filters['urgency_status'])) {
-            $sql .= " AND urgency_status = :urgency_status";
+            $sql .= " AND td.urgency_status = :urgency_status";
             $params['urgency_status'] = $filters['urgency_status'];
         }
         
         if (!empty($filters['search'])) {
-            $sql .= " AND (title LIKE :search OR description LIKE :search)";
+            $sql .= " AND (td.title LIKE :search OR td.description LIKE :search)";
             $params['search'] = '%' . $filters['search'] . '%';
         }
         
@@ -193,13 +195,13 @@ class TaskDatabase {
             $orderDir = strtoupper($orderDir) === 'ASC' ? 'ASC' : 'DESC';
             // Always prioritize overdue tasks first, then sort by the requested field
             $sql .= " ORDER BY 
-                CASE WHEN urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
-                {$orderBy} {$orderDir}";
+                CASE WHEN td.urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
+                td.{$orderBy} {$orderDir}";
         } else {
             // Default ordering with overdue priority
             $sql .= " ORDER BY 
-                CASE WHEN urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
-                urgency_score DESC";
+                CASE WHEN td.urgency_status = 'overdue' THEN 0 ELSE 1 END ASC,
+                td.urgency_score DESC";
         }
         
         // Apply limit
@@ -398,7 +400,9 @@ class TaskDatabase {
      * Get task by ID
      */
     public function getTask($id) {
-        $stmt = $this->connection->prepare("SELECT * FROM task_dashboard WHERE id = :id");
+        $stmt = $this->connection->prepare("SELECT td.*, t.recurrency_type_id FROM task_dashboard td 
+                                           LEFT JOIN tasks t ON td.id = t.id 
+                                           WHERE td.id = :id");
         $stmt->execute(['id' => $id]);
         return $stmt->fetch();
     }

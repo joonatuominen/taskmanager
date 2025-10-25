@@ -61,6 +61,12 @@ try {
             }
             break;
             
+        case '/recurrency-types':
+            if ($method === 'GET') {
+                getRecurrencyTypes();
+            }
+            break;
+            
         default:
             if (preg_match('/^\/tasks\/(\d+)$/', $path, $matches)) {
                 $taskId = $matches[1];
@@ -281,5 +287,21 @@ function getStats() {
         http_response_code(500);
         echo json_encode(['error' => 'Failed to get statistics']);
     }
+}
+
+function getRecurrencyTypes() {
+    // Return predefined recurrency types
+    // Note: ID 1 is reserved for 'No Recurrence' in the database
+    $recurrencyTypes = [
+        ['id' => 2, 'name' => 'Daily'],
+        ['id' => 3, 'name' => 'Weekly'],
+        ['id' => 4, 'name' => 'Monthly'],
+        ['id' => 5, 'name' => 'Yearly']
+    ];
+    
+    echo json_encode([
+        'success' => true,
+        'data' => $recurrencyTypes
+    ]);
 }
 ?>
