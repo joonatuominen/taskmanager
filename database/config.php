@@ -8,10 +8,10 @@
 
 class DatabaseConfig {
     // Database connection parameters
-    const DB_HOST = 'localhost';
+    const DB_HOST = 'localhost';  // Or your remote DB host
     const DB_NAME = 'taskmanager';
-    const DB_USER = 'phpmyadmin'; // Change this to your MySQL username
-    const DB_PASS = 'bzQx@N4z7q!oqsaVtQ*R';     // Change this to your MySQL password
+    const DB_USER = 'your_username';    // Change this to your remote MySQL username
+    const DB_PASS = 'your_password';    // Change this to your remote MySQL password
     const DB_CHARSET = 'utf8mb4';
     
     private static $connection = null;
