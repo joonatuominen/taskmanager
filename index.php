@@ -74,8 +74,8 @@ try {
         
         .add-task-grid {
             display: grid;
-            grid-template-columns: 2fr 1fr 1fr 0.8fr 0.8fr 1.5fr auto;
-            gap: 10px;
+            grid-template-columns: 2fr 0.8fr 0.8fr 0.6fr 0.6fr 0.8fr 1.2fr auto;
+            gap: 8px;
             align-items: end;
         }
         
@@ -95,10 +95,10 @@ try {
         .add-task-field select,
         .add-task-field textarea {
             width: 100%;
-            padding: 10px;
+            padding: 8px;
             border: 2px solid #e9ecef;
             border-radius: 6px;
-            font-size: 14px;
+            font-size: 13px;
             transition: border-color 0.2s ease;
             resize: none;
         }
@@ -122,13 +122,14 @@ try {
         }
         
         .add-task-btn {
-            padding: 10px 20px;
+            padding: 8px 15px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-weight: 600;
             transition: all 0.2s ease;
             white-space: nowrap;
+            font-size: 0.9rem;
         }
         
         .add-task-btn.primary {
@@ -1038,19 +1039,19 @@ try {
 
                             <div className="add-task-field">
                                 <label>Deadline</label>
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '5px' }}>
                                     <input
                                         type="text"
                                         placeholder="dd.mm.YYYY"
                                         value={formData.deadline}
                                         onChange={(e) => handleInputChange('deadline', e.target.value)}
-                                        style={{ flex: 1 }}
+                                        style={{ width: '85px', minWidth: '85px' }}
                                     />
                                     <input
                                         type="date"
                                         value={convertToDateLocal(formData.deadline)}
                                         onChange={(e) => handleDateChange('deadline', e.target.value)}
-                                        style={{ width: '40px', minWidth: '40px' }}
+                                        style={{ width: '30px', minWidth: '30px', padding: '3px' }}
                                         title="Use date picker"
                                     />
                                 </div>
@@ -1058,19 +1059,19 @@ try {
 
                             <div className="add-task-field">
                                 <label>Planned Date</label>
-                                <div style={{ display: 'flex', gap: '10px' }}>
+                                <div style={{ display: 'flex', gap: '5px' }}>
                                     <input
                                         type="text"
                                         placeholder="dd.mm.YYYY"
                                         value={formData.planned_date}
                                         onChange={(e) => handleInputChange('planned_date', e.target.value)}
-                                        style={{ flex: 1 }}
+                                        style={{ width: '85px', minWidth: '85px' }}
                                     />
                                     <input
                                         type="date"
                                         value={convertToDateLocal(formData.planned_date)}
                                         onChange={(e) => handleDateChange('planned_date', e.target.value)}
-                                        style={{ width: '40px', minWidth: '40px' }}
+                                        style={{ width: '30px', minWidth: '30px', padding: '3px' }}
                                         title="Use date picker"
                                     />
                                 </div>
