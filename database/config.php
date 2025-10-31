@@ -7,14 +7,35 @@
  */
 
 class DatabaseConfig {
-    // Database connection parameters
-    const DB_HOST = 'localhost';  // Or your remote DB host
-    const DB_NAME = 'taskmanager';
-    const DB_USER = 'your_username';    // Change this to your remote MySQL username
-    const DB_PASS = 'your_password';    // Change this to your remote MySQL password
     const DB_CHARSET = 'utf8mb4';
     
     private static $connection = null;
+    
+    /**
+     * Get database configuration based on environment
+     */
+    private static function getDatabaseConfig() {
+        // Detect environment based on hostname or server name
+        $hostname = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        
+        if (strpos($hostname, 'jtuominen.net') !== false) {
+            // Production server configuration
+            return [
+                'host' => 'localhost',
+                'database' => 'taskmanager',
+                'username' => 'root',
+                'password' => 'DC2fUhnmbrO1'
+            ];
+        } else {
+            // Local development configuration
+            return [
+                'host' => 'localhost',
+                'database' => 'taskmanager', 
+                'username' => 'phpmyadmin',  // Your local MySQL username
+                'password' => 'bzQx@N4z7q!oqsaVtQ*R'  // Your local MySQL password
+            ];
+        }
+    }
     
     /**
      * Get database connection using PDO
@@ -22,10 +43,12 @@ class DatabaseConfig {
     public static function getConnection() {
         if (self::$connection === null) {
             try {
+                $config = self::getDatabaseConfig();
+                
                 $dsn = sprintf(
                     "mysql:host=%s;dbname=%s;charset=%s",
-                    self::DB_HOST,
-                    self::DB_NAME,
+                    $config['host'],
+                    $config['database'],
                     self::DB_CHARSET
                 );
                 
@@ -36,7 +59,7 @@ class DatabaseConfig {
                     PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES " . self::DB_CHARSET
                 ];
                 
-                self::$connection = new PDO($dsn, self::DB_USER, self::DB_PASS, $options);
+                self::$connection = new PDO($dsn, $config['username'], $config['password'], $options);
                 
             } catch (PDOException $e) {
                 error_log("Database connection failed: " . $e->getMessage());
@@ -45,6 +68,23 @@ class DatabaseConfig {
         }
         
         return self::$connection;
+    }
+    
+    /**
+     * Get current environment info for debugging
+     */
+    public static function getEnvironmentInfo() {
+        $hostname = $_SERVER['HTTP_HOST'] ?? $_SERVER['SERVER_NAME'] ?? 'localhost';
+        $config = self::getDatabaseConfig();
+        
+        return [
+            'hostname' => $hostname,
+            'environment' => strpos($hostname, 'jtuominen.net') !== false ? 'production' : 'development',
+            'database_host' => $config['host'],
+            'database_name' => $config['database'],
+            'database_user' => $config['username']
+            // Note: password is intentionally not included for security
+        ];
     }
     
     /**
@@ -59,13 +99,51 @@ class DatabaseConfig {
         $connection = self::getConnection();
         
         try {
+            // Remove stored procedures from the SQL content for basic setup
+            // Split into sections and filter out procedure definitions
+            $sql_clean = '';
+            $lines = explode("\n", $sql);
+            $skip_procedure = false;
+            
+            foreach ($lines as $line) {
+                $trimmed = trim($line);
+                
+                // Start skipping when we hit a CREATE PROCEDURE
+                if (preg_match('/^CREATE\s+PROCEDURE/i', $trimmed)) {
+                    $skip_procedure = true;
+                    error_log("Skipping stored procedure: " . substr($trimmed, 0, 50) . "...");
+                    continue;
+                }
+                
+                // Stop skipping when we hit END and then a delimiter
+                if ($skip_procedure && preg_match('/^END\s*;?\s*$/i', $trimmed)) {
+                    $skip_procedure = false;
+                    continue;
+                }
+                
+                // If we're not skipping, add the line to clean SQL
+                if (!$skip_procedure) {
+                    $sql_clean .= $line . "\n";
+                }
+            }
+            
             // Split SQL file by delimiter and execute each statement
-            $statements = explode(';', $sql);
+            $statements = explode(';', $sql_clean);
             
             foreach ($statements as $statement) {
                 $statement = trim($statement);
-                if (!empty($statement)) {
-                    $connection->exec($statement);
+                if (!empty($statement) && !preg_match('/^--/', $statement) && !preg_match('/^\/\*/', $statement)) {
+                    try {
+                        $connection->exec($statement);
+                    } catch (PDOException $e) {
+                        // Ignore errors for statements that might already exist
+                        if (strpos($e->getMessage(), 'already exists') === false && 
+                            strpos($e->getMessage(), 'Duplicate') === false) {
+                            // Re-throw if it's not an "already exists" error
+                            throw $e;
+                        }
+                        // Otherwise, silently continue (table/view already exists)
+                    }
                 }
             }
             
@@ -86,7 +164,49 @@ class DatabaseConfig {
             $stmt = $connection->query("SHOW TABLES LIKE 'tasks'");
             return $stmt->rowCount() > 0;
         } catch (Exception $e) {
+            error_log("isDatabaseSetup error: " . $e->getMessage());
             return false;
+        }
+    }
+    
+    /**
+     * Get detailed database status for debugging
+     */
+    public static function getDatabaseStatus() {
+        try {
+            $connection = self::getConnection();
+            
+            // Get all tables
+            $stmt = $connection->query("SHOW TABLES");
+            $tables = $stmt->fetchAll(PDO::FETCH_COLUMN);
+            
+            // Check for required tables
+            $requiredTables = ['tasks', 'recurrency_types'];
+            $status = [
+                'connection' => true,
+                'all_tables' => $tables,
+                'required_tables' => [],
+                'missing_tables' => [],
+                'setup_complete' => true
+            ];
+            
+            foreach ($requiredTables as $table) {
+                if (in_array($table, $tables)) {
+                    $status['required_tables'][] = $table;
+                } else {
+                    $status['missing_tables'][] = $table;
+                    $status['setup_complete'] = false;
+                }
+            }
+            
+            return $status;
+            
+        } catch (Exception $e) {
+            return [
+                'connection' => false,
+                'error' => $e->getMessage(),
+                'setup_complete' => false
+            ];
         }
     }
     
@@ -95,11 +215,21 @@ class DatabaseConfig {
      */
     public static function setupDatabase() {
         try {
-            // First, execute the main schema
+            // First, execute the main schema (skip stored procedures for now)
             self::executeSqlFile(__DIR__ . '/schema.sql');
             
-            // Then, execute the procedures
-            self::executeSqlFile(__DIR__ . '/procedures.sql');
+            // Execute simple views if they exist
+            if (file_exists(__DIR__ . '/simple_views.sql')) {
+                self::executeSqlFile(__DIR__ . '/simple_views.sql');
+            }
+            
+            // Execute migrations if they exist
+            if (file_exists(__DIR__ . '/add_title_migration.sql')) {
+                self::executeSqlFile(__DIR__ . '/add_title_migration.sql');
+            }
+            
+            // Skip procedures for now as they need special handling
+            // self::executeSqlFile(__DIR__ . '/procedures.sql');
             
             return true;
             

@@ -217,12 +217,17 @@ require_once __DIR__ . '/database/config.php';
         
         <h2>🛠️ Database Configuration</h2>
         <p>Current database configuration:</p>
-        <pre>Host: <?php echo DatabaseConfig::DB_HOST; ?>
-Database: <?php echo DatabaseConfig::DB_NAME; ?>
-Username: <?php echo DatabaseConfig::DB_USER; ?>
+        <?php 
+        $envInfo = DatabaseConfig::getEnvironmentInfo();
+        ?>
+        <pre>Environment: <?php echo ucfirst($envInfo['environment']); ?>
+Hostname: <?php echo $envInfo['hostname']; ?>
+Host: <?php echo $envInfo['database_host']; ?>
+Database: <?php echo $envInfo['database_name']; ?>
+Username: <?php echo $envInfo['database_user']; ?>
 Charset: <?php echo DatabaseConfig::DB_CHARSET; ?></pre>
         
-        <p><strong>To modify these settings:</strong> Edit the constants in <code>database/config.php</code></p>
+        <p><strong>Configuration is automatic:</strong> Uses different settings for localhost vs jtuominen.net</p>
         
         <h2>📖 Database Schema Overview</h2>
         <p>Your task management database includes the following key tables:</p>
