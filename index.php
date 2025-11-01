@@ -63,13 +63,51 @@ try {
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         
+        .header-section {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+        
         .add-task-bar {
             background: white;
             border-radius: 8px;
             padding: 20px;
-            margin-bottom: 20px;
+            flex: 1;
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
             border: 2px solid #667eea;
+        }
+        
+        .export-section {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 2px solid #28a745;
+            min-width: 150px;
+            text-align: center;
+        }
+        
+        .export-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            transition: all 0.2s;
+            border: none;
+        }
+        
+        .export-link:hover {
+            background: linear-gradient(135deg, #218838, #1ea080);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+            color: white;
+            text-decoration: none;
         }
         
         .add-task-grid {
@@ -822,13 +860,16 @@ try {
             return (
                 <div className="app-container">
                     <div className="main-content">
-                        <AddTaskBar 
-                            recurrencyTypes={recurrencyTypes}
-                            onTaskAdded={() => {
-                                fetchTasks();
-                                fetchTaskCounts();
-                            }}
-                        />
+                        <div className="header-section">
+                            <AddTaskBar 
+                                recurrencyTypes={recurrencyTypes}
+                                onTaskAdded={() => {
+                                    fetchTasks();
+                                    fetchTaskCounts();
+                                }}
+                            />
+                            <ExportButton />
+                        </div>
                         
                         {activeTab === 'all' && (
                             <FiltersBar 
@@ -849,6 +890,22 @@ try {
                             recurrencyTypes={recurrencyTypes}
                         />
                     </div>
+                </div>
+            );
+        }
+
+        // Export Button Component
+        function ExportButton() {
+            return (
+                <div className="export-section">
+                    <a 
+                        href="/taskmanager/export_pdf.php" 
+                        className="export-link"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                    >
+                        📄 Export to PDF
+                    </a>
                 </div>
             );
         }
